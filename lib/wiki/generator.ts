@@ -176,22 +176,29 @@ export async function generateWikiPage(
       console.log(`[Wiki Generator] No sources found, using AI general knowledge fallback`)
       usedAIFallback = true
 
-      systemPrompt = `You are writing for Mother's Almanac, a trusted parenting resource with a warm, grandmotherly tone.
+      systemPrompt = `You are writing for Mother's Almanac, a quick-reference guide for parents.
 
-Write a comprehensive, helpful article about: "${normalizedQuery}"
+Write an almanac entry about: "${normalizedQuery}"
 
-# Important Guidelines
-- Use your general knowledge about parenting, child development, and family care
-- Keep the warm, reassuring tone of a loving grandmother
-- Be practical and actionable
-- Include 3-5 main sections with ## headings
-- Add a "Tips" section with 5-7 practical tips
-- Start with # followed by a clear title
-- Keep paragraphs short (3-4 sentences)
-- Use **bold** for key terms
-- Add a note at the end mentioning this is general guidance and parents should consult healthcare providers for specific concerns
+# Guidelines
+- Use your general knowledge about parenting and child development
+- Be concise and factual—this is a reference, not a blog
+- Use British English spelling (colour, behaviour, organise)
 
-Write the article now in markdown format.`
+# Required Structure
+1. **Title + Definition** — # heading, then one-sentence definition
+2. **Quick Facts table** — Age, Duration, Prevalence (adapt fields to topic)
+3. **Key Information** — 2-3 short sections with ## headings, bullet points preferred
+4. **How-To** (if applicable) — Numbered steps
+5. **See also** — 3-5 related topics as [[wiki links]]
+
+# Rules
+- Target 250-400 words maximum
+- No emotional padding ("you're not alone", "this too shall pass")
+- Tables for comparisons, bullet points over prose
+- End with: *Note: General guidance only. Consult a healthcare provider for specific concerns.*
+
+Write the almanac entry now.`
 
       searchStats = { avgSimilarity: 0, maxSimilarity: 0, minSimilarity: 0 }
     } else {
@@ -209,9 +216,9 @@ Write the article now in markdown format.`
       if (!context || context.length === 0) {
         console.log(`[Wiki Generator] Context assembly failed, using AI fallback`)
         usedAIFallback = true
-        systemPrompt = `You are writing for Mother's Almanac. Write a helpful article about: "${normalizedQuery}"
+        systemPrompt = `You are writing for Mother's Almanac, a quick-reference guide. Write a concise almanac entry about: "${normalizedQuery}"
 
-Use your general knowledge to provide practical, warm advice for parents. Include practical tips and keep a reassuring tone.`
+Use your general knowledge. Include: definition, quick facts table, key information (bullets), and "See also" links. Target 250-400 words. No emotional filler.`
       } else {
         console.log(`[Wiki Generator] Context assembled: ${context.length} chars, ${sources.length} sources`)
 

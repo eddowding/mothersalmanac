@@ -1,0 +1,172 @@
+# Mother's Almanac Knowledge Base Sample Document
+
+## Introduction to Natural Pregnancy Care
+
+This is a sample document for testing the RAG pipeline. It contains information about natural pregnancy care and traditional wisdom.
+
+## Chapter 1: First Trimester Care
+
+During the first trimester, it's essential to focus on nutrition and rest. Here are some key points:
+
+### Nutrition Guidelines
+
+- Eat plenty of leafy green vegetables rich in folate
+- Stay hydrated with at least 8 glasses of water daily
+- Avoid processed foods and excessive sugar
+- Include protein-rich foods in every meal
+- Consider natural supplements like folate and vitamin D
+
+### Rest and Sleep
+
+Getting adequate rest is crucial during early pregnancy. Most women need 8-10 hours of sleep per night. Listen to your body and take naps when needed.
+
+## Chapter 2: Herbal Remedies
+
+Traditional herbal remedies have been used for centuries to support healthy pregnancies. Always consult with a healthcare provider before using any herbs.
+
+### Safe Herbs During Pregnancy
+
+1. Ginger - helps with morning sickness
+2. Red raspberry leaf - tones the uterus (second and third trimester only)
+3. Chamomile - aids relaxation and sleep
+4. Peppermint - helps with digestion
+
+### Herbs to Avoid
+
+Some herbs should be completely avoided during pregnancy as they can cause complications. These include:
+
+- Pennyroyal
+- Black cohosh (early pregnancy)
+- Blue cohosh
+- Dong quai
+
+## Chapter 3: Exercise and Movement
+
+Staying active during pregnancy is important for both physical and mental health. Choose low-impact exercises that feel comfortable.
+
+### Recommended Activities
+
+- Walking for 30 minutes daily
+- Prenatal yoga classes
+- Swimming and water aerobics
+- Gentle stretching exercises
+- Pelvic floor exercises (Kegels)
+
+### Warning Signs to Stop Exercise
+
+Stop exercising immediately and contact your healthcare provider if you experience:
+
+- Vaginal bleeding or fluid leakage
+- Dizziness or feeling faint
+- Chest pain or shortness of breath
+- Regular painful contractions
+- Decreased fetal movement
+
+## Chapter 4: Emotional Wellness
+
+Pregnancy brings many emotional changes due to hormonal shifts and life transitions. It's normal to experience a wide range of feelings.
+
+### Coping Strategies
+
+- Join a pregnancy support group
+- Practice mindfulness and meditation
+- Keep a pregnancy journal
+- Communicate openly with your partner
+- Seek professional help if feeling overwhelmed
+
+### Building Your Support Network
+
+Having a strong support network is invaluable during pregnancy and postpartum. Consider:
+
+- Family members who can provide practical help
+- Friends who are also parents
+- Healthcare providers you trust
+- Online communities for connection
+- Doulas or birth coaches for guidance
+
+## Chapter 5: Nutrition Deep Dive
+
+Proper nutrition forms the foundation of a healthy pregnancy. Let's explore specific nutritional needs in detail.
+
+### Protein Requirements
+
+Pregnant women need approximately 70-100 grams of protein daily. Good sources include:
+
+- Lean meats and poultry
+- Fish (choose low-mercury options)
+- Eggs
+- Legumes and beans
+- Nuts and seeds
+- Dairy products
+- Quinoa and other whole grains
+
+### Essential Fats
+
+Omega-3 fatty acids are crucial for baby's brain development. Include these sources:
+
+- Wild-caught salmon
+- Sardines and anchovies
+- Chia seeds
+- Flaxseeds (ground)
+- Walnuts
+- Algae-based supplements
+
+## Chapter 6: Preparing for Birth
+
+As you approach your due date, preparation becomes key. Understanding the birth process helps reduce anxiety.
+
+### Creating a Birth Plan
+
+Consider these elements when creating your birth plan:
+
+- Preferred birth location (hospital, birth center, home)
+- Pain management preferences
+- Who you want present during birth
+- Immediate postpartum wishes
+- Feeding preferences
+
+### Signs of Labor
+
+Know the signs that labor is beginning:
+
+- Regular contractions that increase in intensity
+- Water breaking (rupture of membranes)
+- Bloody show
+- Back pain that comes in waves
+- Feeling of pressure in pelvis
+
+## Conclusion
+
+Every pregnancy is unique, and what works for one person may not work for another. Trust your intuition and always consult with qualified healthcare providers about your specific situation.
+
+Remember: This information is for educational purposes only and should not replace medical advice from your healthcare provider.
+
+## Appendix: Quick Reference Guide
+
+### First Trimester Checklist
+- [ ] Schedule first prenatal appointment
+- [ ] Start prenatal vitamins
+- [ ] Adjust diet for pregnancy nutrition
+- [ ] Reduce caffeine intake
+- [ ] Avoid harmful substances
+- [ ] Get adequate rest
+
+### Second Trimester Checklist
+- [ ] Continue prenatal appointments
+- [ ] Consider prenatal classes
+- [ ] Start pelvic floor exercises
+- [ ] Research birth options
+- [ ] Begin birth plan
+- [ ] Stay physically active
+
+### Third Trimester Checklist
+- [ ] Increase prenatal appointment frequency
+- [ ] Pack hospital bag
+- [ ] Install car seat
+- [ ] Prepare nursery
+- [ ] Discuss birth plan with provider
+- [ ] Learn about newborn care
+
+---
+
+End of Sample Document

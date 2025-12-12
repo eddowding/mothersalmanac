@@ -1,26 +1,395 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@import "tw-animate-css";
+@import "./globals-print.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-lora);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  /* Mother's Almanac custom colors */
+  --color-almanac-sage-50: 240 14% 98%;
+  --color-almanac-sage-100: 138 20% 94%;
+  --color-almanac-sage-200: 138 18% 86%;
+  --color-almanac-sage-300: 138 16% 72%;
+  --color-almanac-sage-400: 138 14% 58%;
+  --color-almanac-sage-500: 138 12% 44%;
+  --color-almanac-sage-600: 138 14% 36%;
+  --color-almanac-sage-700: 138 16% 28%;
+  --color-almanac-sage-800: 138 18% 20%;
+  --color-almanac-sage-900: 138 20% 12%;
+  --color-almanac-cream-50: 43 80% 98%;
+  --color-almanac-cream-100: 43 60% 95%;
+  --color-almanac-cream-200: 43 50% 90%;
+  --color-almanac-cream-300: 43 40% 85%;
+  --color-almanac-earth-50: 30 20% 96%;
+  --color-almanac-earth-100: 30 18% 88%;
+  --color-almanac-earth-200: 30 16% 76%;
+  --color-almanac-earth-300: 30 14% 64%;
+  --color-almanac-earth-400: 30 12% 52%;
+  --color-almanac-earth-500: 30 14% 40%;
+  --color-almanac-earth-600: 30 16% 32%;
+  --color-almanac-earth-700: 30 18% 24%;
+  /* Wiki link colors */
+  --color-link-strong: 138 50% 40%;
+  --color-link-medium: 220 80% 50%;
+  --color-link-weak: 220 10% 60%;
+  --color-link-ghost: 220 10% 85%;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --radius: 0.5rem;
+  /* Warm cream background like aged paper */
+  --background: oklch(0.98 0.01 80);
+  --foreground: oklch(0.2 0.02 30);
+  /* Soft card with subtle texture */
+  --card: oklch(0.99 0.008 80);
+  --card-foreground: oklch(0.2 0.02 30);
+  --popover: oklch(0.99 0.008 80);
+  --popover-foreground: oklch(0.2 0.02 30);
+  /* Sage green primary for wisdom/growth */
+  --primary: oklch(0.5 0.08 140);
+  --primary-foreground: oklch(0.99 0.008 80);
+  /* Earth tones for secondary */
+  --secondary: oklch(0.92 0.015 40);
+  --secondary-foreground: oklch(0.3 0.02 30);
+  --muted: oklch(0.94 0.01 80);
+  --muted-foreground: oklch(0.5 0.02 30);
+  --accent: oklch(0.92 0.02 140);
+  --accent-foreground: oklch(0.2 0.02 30);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.88 0.015 80);
+  --input: oklch(0.95 0.01 80);
+  --ring: oklch(0.5 0.08 140);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.98 0.01 80);
+  --sidebar-foreground: oklch(0.2 0.02 30);
+  --sidebar-primary: oklch(0.5 0.08 140);
+  --sidebar-primary-foreground: oklch(0.99 0.008 80);
+  --sidebar-accent: oklch(0.92 0.015 40);
+  --sidebar-accent-foreground: oklch(0.3 0.02 30);
+  --sidebar-border: oklch(0.88 0.015 80);
+  --sidebar-ring: oklch(0.5 0.08 140);
+}
+
+.dark {
+  --background: oklch(0.129 0.042 264.695);
+  --foreground: oklch(0.984 0.003 247.858);
+  --card: oklch(0.208 0.042 265.755);
+  --card-foreground: oklch(0.984 0.003 247.858);
+  --popover: oklch(0.208 0.042 265.755);
+  --popover-foreground: oklch(0.984 0.003 247.858);
+  --primary: oklch(0.929 0.013 255.508);
+  --primary-foreground: oklch(0.208 0.042 265.755);
+  --secondary: oklch(0.279 0.041 260.031);
+  --secondary-foreground: oklch(0.984 0.003 247.858);
+  --muted: oklch(0.279 0.041 260.031);
+  --muted-foreground: oklch(0.704 0.04 256.788);
+  --accent: oklch(0.279 0.041 260.031);
+  --accent-foreground: oklch(0.984 0.003 247.858);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.551 0.027 264.364);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.208 0.042 265.755);
+  --sidebar-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.279 0.041 260.031);
+  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.551 0.027 264.364);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "kern" 1, "liga" 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Custom scrollbar for better UX */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--color-almanac-cream-100));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--color-almanac-sage-300));
+    border-radius: 5px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--color-almanac-sage-500));
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Smooth transitions */
+@layer utilities {
+  .transition-base {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+}
+
+/* Wiki link styles */
+@layer components {
+  .wiki-link-strong {
+    @apply text-[hsl(var(--color-link-strong))] underline decoration-2 hover:decoration-[hsl(var(--color-link-strong))];
+  }
+
+  .wiki-link-medium {
+    @apply text-[hsl(var(--color-link-medium))] underline decoration-1 hover:decoration-2;
+  }
+
+  .wiki-link-weak {
+    @apply text-[hsl(var(--color-link-weak))] no-underline border-b border-dotted border-[hsl(var(--color-link-weak))];
+  }
+
+  .wiki-link-ghost {
+    @apply text-muted-foreground hover:text-foreground no-underline;
+  }
+}
+
+/* Typography - prose styling for wiki content */
+@layer components {
+  .prose-almanac {
+    @apply prose prose-slate max-w-none;
+    font-size: 1.0625rem; /* 17px - optimal reading size */
+    line-height: 1.75;
+  }
+
+  /* Custom prose element styling for Mother's Almanac */
+  .prose-almanac :is(h1, h2, h3, h4, h5, h6) {
+    @apply font-serif text-[hsl(var(--color-almanac-earth-700))] scroll-mt-24;
+    letter-spacing: -0.02em;
+  }
+
+  .prose-almanac h1 {
+    @apply text-4xl md:text-5xl font-bold mb-6 mt-8;
+  }
+
+  .prose-almanac h2 {
+    @apply text-3xl font-semibold mb-4 mt-12;
+  }
+
+  .prose-almanac h3 {
+    @apply text-2xl font-semibold mb-3 mt-8;
+  }
+
+  .prose-almanac h4 {
+    @apply text-xl font-medium mb-2 mt-6;
+  }
+
+  .prose-almanac p {
+    @apply text-foreground leading-relaxed my-5;
+  }
+
+  .prose-almanac a {
+    @apply text-[hsl(var(--color-link-medium))] underline decoration-1 hover:decoration-2 font-medium transition-all;
+  }
+
+  .prose-almanac strong {
+    @apply text-[hsl(var(--color-almanac-earth-600))] font-semibold;
+  }
+
+  .prose-almanac code {
+    @apply text-[hsl(var(--color-almanac-sage-700))] bg-[hsl(var(--color-almanac-cream-100))] px-1.5 py-0.5 rounded text-sm font-mono;
+  }
+
+  .prose-almanac pre {
+    @apply bg-[hsl(var(--color-almanac-earth-50))] border border-border rounded-lg my-6 overflow-x-auto;
+  }
+
+  .prose-almanac pre code {
+    @apply bg-transparent p-0;
+  }
+
+  .prose-almanac blockquote {
+    @apply border-l-4 border-[hsl(var(--color-almanac-sage-400))] bg-[hsl(var(--color-almanac-cream-50))] italic pl-4 py-2 my-6 rounded-r;
+  }
+
+  .prose-almanac ul {
+    @apply list-disc pl-6 space-y-2 my-5;
+  }
+
+  .prose-almanac ol {
+    @apply list-decimal pl-6 space-y-2 my-5;
+  }
+
+  .prose-almanac li {
+    @apply text-foreground leading-relaxed;
+  }
+
+  .prose-almanac li > p {
+    @apply my-2;
+  }
+
+  .prose-almanac hr {
+    @apply border-border my-8;
+  }
+
+  .prose-almanac table {
+    @apply w-full my-6;
+  }
+
+  .prose-almanac img {
+    @apply rounded-lg my-6;
+  }
+
+  .prose-almanac figure {
+    @apply my-8;
+  }
+
+  .prose-almanac figcaption {
+    @apply text-sm text-muted-foreground italic mt-2 text-center;
+  }
+
+  /* Dark mode adjustments */
+  .dark .prose-almanac h1,
+  .dark .prose-almanac h2,
+  .dark .prose-almanac h3,
+  .dark .prose-almanac h4 {
+    @apply text-[hsl(var(--color-almanac-earth-200))];
+  }
+
+  .dark .prose-almanac code {
+    @apply bg-gray-800 text-[hsl(var(--color-almanac-sage-400))];
+  }
+
+  .dark .prose-almanac blockquote {
+    @apply bg-gray-900/50 border-[hsl(var(--color-almanac-sage-600))];
+  }
+
+  .dark .prose-almanac pre {
+    @apply bg-gray-900 border-gray-700;
+  }
+}
+
+/* Print styles for wiki pages */
+@media print {
+  /* Hide navigation and interactive elements */
+  nav,
+  .no-print,
+  .wiki-toc,
+  .breadcrumbs,
+  button,
+  .chat-trigger {
+    display: none !important;
+  }
+
+  /* Reset backgrounds and colors for printing */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Simplify links for print */
+  a {
+    text-decoration: underline;
+    color: black !important;
+  }
+
+  /* Show link URLs after text */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #666;
+  }
+
+  /* Full width for content */
+  .prose-almanac,
+  .wiki-content {
+    max-width: 100% !important;
+  }
+
+  /* Remove grid layout for print */
+  .grid {
+    display: block !important;
+  }
+
+  /* Page breaks */
+  h1, h2, h3 {
+    page-break-after: avoid;
+  }
+
+  pre, blockquote, table {
+    page-break-inside: avoid;
+  }
+
+  /* Simplify cards and borders */
+  .card {
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+  }
+
+  /* Header styling */
+  .wiki-page-header {
+    border-bottom: 2px solid black;
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  /* Source attribution styling */
+  .source-attribution {
+    border-top: 1px solid #ddd;
+    padding-top: 1rem;
+    margin-top: 2rem;
+  }
 }

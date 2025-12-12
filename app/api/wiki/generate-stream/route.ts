@@ -238,12 +238,28 @@ Write the almanac entry now.`
 }
 
 function generateExcerpt(content: string): string {
-  const withoutHeadings = content.replace(/^#+\s+.+$/gm, '')
-  const plainText = withoutHeadings
+  const plainText = content
+    // Remove headings
+    .replace(/^#+\s+.+$/gm, '')
+    // Remove table rows (lines with |)
+    .replace(/^\|.*\|$/gm, '')
+    // Remove table separators
+    .replace(/^\s*[-|:]+\s*$/gm, '')
+    // Remove wiki links [[text]]
+    .replace(/\[\[([^\]]+)\]\]/g, '$1')
+    // Remove bold
     .replace(/\*\*(.+?)\*\*/g, '$1')
+    // Remove italic
     .replace(/\*(.+?)\*/g, '$1')
+    // Remove links but keep text
     .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+    // Collapse multiple newlines
+    .replace(/\n{2,}/g, ' ')
+    // Collapse whitespace
+    .replace(/\s+/g, ' ')
     .trim()
+
+  // Get first 200 chars ending at word boundary
   const excerpt = plainText.substring(0, 200)
   const lastSpace = excerpt.lastIndexOf(' ')
   return lastSpace > 0 ? excerpt.substring(0, lastSpace) + '...' : excerpt + '...'

@@ -11,7 +11,20 @@ interface MarkdownContentProps {
   content: string
 }
 
+/**
+ * Convert [[wiki links]] to standard markdown links
+ * [[Topic Name]] -> [Topic Name](/wiki/topic-name)
+ */
+function preprocessWikiLinks(content: string): string {
+  return content.replace(/\[\[([^\]]+)\]\]/g, (_, topic) => {
+    const slug = slugify(topic)
+    return `[${topic}](/wiki/${slug})`
+  })
+}
+
 export function MarkdownContent({ content }: MarkdownContentProps) {
+  const processedContent = preprocessWikiLinks(content)
+
   return (
     <div className="prose-almanac prose prose-slate max-w-none">
       <ReactMarkdown
@@ -98,7 +111,7 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
           )
         }}
       >
-        {content}
+        {processedContent}
       </ReactMarkdown>
     </div>
   )

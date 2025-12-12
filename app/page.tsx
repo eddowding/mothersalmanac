@@ -16,21 +16,21 @@ export default function HomePage() {
   const features = [
     {
       icon: Sparkles,
-      title: "AI-Powered Knowledge",
+      title: "Evidence-Based Answers",
       description:
-        "Ask any question and receive comprehensive, well-researched answers that become permanent wiki entries.",
+        "Get clear, factual guidance on parenting topics from feeding and sleep to development and health.",
     },
     {
       icon: Network,
-      title: "Interconnected Learning",
+      title: "Connected Topics",
       description:
-        "Every topic links to related concepts, creating a web of knowledge that mirrors how you think.",
+        "Every entry links to related concepts - from colic to reflux to sleep patterns - so you can explore further.",
     },
     {
       icon: Zap,
-      title: "Grows With You",
+      title: "Quick Reference",
       description:
-        "The almanac evolves based on your curiosity, building a personalized knowledge repository over time.",
+        "Concise almanac-style entries with tables, timelines, and bullet points. No waffle, just facts.",
     },
   ];
 
@@ -58,34 +58,32 @@ export default function HomePage() {
               className="bg-almanac-sage-100 text-almanac-sage-800 border-almanac-sage-300"
             >
               <BookOpen className="h-3 w-3 mr-1" />
-              Your Personal Knowledge Companion
+              A Quick-Reference Guide for Parents
             </Badge>
 
             {/* Heading */}
             <h1 className="font-serif text-5xl md:text-7xl font-bold text-almanac-earth-700 leading-tight">
-              Ask the Almanac
+              Mother&apos;s
               <span className="block text-almanac-sage-700 mt-2">
-                Anything
+                Almanac
               </span>
             </h1>
 
             {/* Subtitle */}
             <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              A living encyclopedia that grows with your curiosity. Every
-              question you ask becomes a permanent entry in your personal
-              knowledge repository.
+              Practical, evidence-based parenting guidance at your fingertips.
+              From newborn basics to toddler tantrums - clear answers without the waffle.
             </p>
 
             {/* Search Bar */}
             <div className="max-w-2xl mx-auto pt-4">
               <SearchBar
-                placeholder="What would you like to learn about?"
+                placeholder="Search for a topic... e.g. colic, sleep training, teething"
                 className="w-full"
                 autoFocus
               />
               <p className="text-sm text-muted-foreground mt-3">
-                Try asking about history, science, culture, or anything else
-                that sparks your curiosity
+                Try: fever, swaddling, weaning, developmental milestones, reflux
               </p>
             </div>
           </div>
@@ -97,11 +95,10 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="font-serif text-3xl md:text-4xl font-bold text-almanac-earth-700 mb-4">
-              How It Works
+              Built for Busy Parents
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Mother&apos;s Almanac combines AI intelligence with traditional
-              wiki organization
+              No scrolling through forums or blog posts. Just the facts you need, when you need them.
             </p>
           </div>
 
@@ -131,11 +128,11 @@ export default function HomePage() {
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-3xl mx-auto space-y-6">
             <h2 className="font-serif text-4xl md:text-5xl font-bold text-almanac-earth-700">
-              Start Building Your Knowledge
+              Your Parenting Questions, Answered
             </h2>
             <p className="text-xl text-muted-foreground">
-              Create an account to save your searches, bookmark favorite
-              entries, and watch your personal almanac grow.
+              Search any parenting topic and get a clear, concise reference entry.
+              No signup required - just start searching.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
               <Button
@@ -143,10 +140,13 @@ export default function HomePage() {
                 asChild
                 className="bg-almanac-sage-600 hover:bg-almanac-sage-700 text-white"
               >
-                <Link href="/auth/signup">Get Started Free</Link>
+                <Link href="/wiki/newborn-care">
+                  Explore Newborn Care
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
-                <Link href="/about">Learn More</Link>
+                <Link href="/wiki/sleep-training">Sleep Training Guide</Link>
               </Button>
             </div>
           </div>
@@ -163,8 +163,8 @@ export default function HomePage() {
                 Mother&apos;s Almanac
               </div>
               <p className="text-sm text-muted-foreground max-w-md">
-                Your dynamic knowledge repository that grows with your
-                curiosity. Powered by AI, organized like a traditional almanac.
+                A quick-reference guide for parents. Evidence-based information
+                on feeding, sleep, development, and health - without the waffle.
               </p>
             </div>
             <div>

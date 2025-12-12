@@ -13,11 +13,13 @@ Mother's Almanac is an AI-powered wiki system that dynamically generates and mai
 
 ### Core Features
 - **AI-Powered Wiki Generation**: Automatically generates comprehensive wiki pages using Claude 3.5 Sonnet
+- **⌘K Command Palette**: Fast search across wiki pages and suggested topics with keyboard navigation
 - **Intelligent Caching**: Smart caching system with confidence scoring and automatic regeneration
 - **RAG Pipeline**: Upload documents and query them with AI-powered retrieval
 - **Semantic Search**: Find related content across the knowledge base
 - **Link Injection**: Automatic internal linking between related pages
 - **Real-time Analytics**: Track views, searches, generations, and costs
+- **UK English**: All generated content uses British spelling
 
 ### Admin Features
 - **Dashboard**: Real-time stats, cost monitoring, and system health
@@ -49,6 +51,12 @@ Mother's Almanac is an AI-powered wiki system that dynamically generates and mai
 - **Styling**: Tailwind CSS + shadcn/ui
 - **Deployment**: Vercel
 
+## Live Demo
+
+🌐 **Production Site**: https://mothersalmanac.com
+
+Try the command palette search with **⌘K** (Mac) or **Ctrl+K** (Windows)!
+
 ## Quick Start
 
 ### Prerequisites
@@ -62,7 +70,7 @@ Mother's Almanac is an AI-powered wiki system that dynamically generates and mai
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/mothersalmanac.git
+   git clone https://github.com/eddowding/mothersalmanac.git
    cd mothersalmanac
    ```
 

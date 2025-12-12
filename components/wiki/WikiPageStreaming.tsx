@@ -1,13 +1,38 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useMemo } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { WikiNav } from "@/components/WikiNav"
 import { WikiGenerating } from "./WikiGenerating"
+import { WikiTableOfContents } from "./WikiTableOfContents"
 import { Sparkles } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { slugify } from "@/lib/wiki/slugs"
+
+/**
+ * Convert [[wiki links]] to standard markdown links
+ * [[Topic Name]] -> [Topic Name](/wiki/topic-name)
+ */
+function preprocessWikiLinks(content: string): string {
+  return content.replace(/\[\[([^\]]+)\]\]/g, (_, topic) => {
+    const slug = slugify(topic)
+    return `[${topic}](/wiki/${slug})`
+  })
+}
+
+/**
+ * Generate a slug-style ID from heading text
+ */
+function generateHeadingId(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim()
+}
 
 interface WikiPageStreamingProps {
   slug: string
@@ -182,6 +207,9 @@ export function WikiPageStreaming({ slug, initialContent }: WikiPageStreamingPro
             </header>
           )}
 
+          {/* Table of Contents - updates live as content streams */}
+          <WikiTableOfContents content={content} />
+
           {/* Streaming Content */}
           <article
             ref={contentRef}
@@ -195,6 +223,24 @@ export function WikiPageStreaming({ slug, initialContent }: WikiPageStreamingPro
               components={{
                 // Hide the H1 since we render it separately
                 h1: () => null,
+                h2: ({ children, ...props }) => {
+                  const text = String(children)
+                  const id = generateHeadingId(text)
+                  return (
+                    <h2 id={id} className="scroll-mt-24" {...props}>
+                      {children}
+                    </h2>
+                  )
+                },
+                h3: ({ children, ...props }) => {
+                  const text = String(children)
+                  const id = generateHeadingId(text)
+                  return (
+                    <h3 id={id} className="scroll-mt-24" {...props}>
+                      {children}
+                    </h3>
+                  )
+                },
                 a: ({ href, children, ...props }) => {
                   if (href?.startsWith("/wiki/")) {
                     return (
@@ -221,7 +267,7 @@ export function WikiPageStreaming({ slug, initialContent }: WikiPageStreamingPro
                 },
               }}
             >
-              {content}
+              {preprocessWikiLinks(content)}
             </ReactMarkdown>
           </article>
 

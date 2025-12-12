@@ -8,10 +8,21 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { WikiNav } from '@/components/WikiNav'
-import { generateBreadcrumbs } from '@/lib/wiki/slugs'
+import { generateBreadcrumbs, slugify } from '@/lib/wiki/slugs'
 import type { CachedPage } from '@/lib/wiki/cache'
 import Link from 'next/link'
 import { WikiTableOfContents } from '@/components/wiki/WikiTableOfContents'
+
+/**
+ * Convert [[wiki links]] to standard markdown links
+ * [[Topic Name]] -> [Topic Name](/wiki/topic-name)
+ */
+function preprocessWikiLinks(content: string): string {
+  return content.replace(/\[\[([^\]]+)\]\]/g, (_, topic) => {
+    const slug = slugify(topic)
+    return `[${topic}](/wiki/${slug})`
+  })
+}
 
 interface WikiPageContentProps {
   page: CachedPage
@@ -197,7 +208,7 @@ export function WikiPageContent({ page }: WikiPageContentProps) {
                 },
               }}
             >
-              {page.content}
+              {preprocessWikiLinks(page.content)}
             </ReactMarkdown>
           </article>
 

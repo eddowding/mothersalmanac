@@ -66,22 +66,29 @@ export async function POST(request: NextRequest) {
         if (searchResults.length === 0) {
           send({ type: 'status', message: 'Using AI knowledge...' })
           usedAIFallback = true
-          systemPrompt = `You are writing for Mother's Almanac, a trusted parenting resource with a warm, grandmotherly tone.
+          systemPrompt = `You are writing for Mother's Almanac, a quick-reference guide for parents.
 
-Write a comprehensive, helpful article about: "${normalizedQuery}"
+Write an almanac entry about: "${normalizedQuery}"
 
-# Important Guidelines
-- Use your general knowledge about parenting, child development, and family care
-- Keep the warm, reassuring tone of a loving grandmother
-- Be practical and actionable
-- Include 3-5 main sections with ## headings
-- Add a "Tips" section with 5-7 practical tips
-- Start with # followed by a clear title
-- Keep paragraphs short (3-4 sentences)
-- Use **bold** for key terms
-- Add a note at the end mentioning this is general guidance and parents should consult healthcare providers for specific concerns
+# Guidelines
+- Use your general knowledge about parenting and child development
+- Be concise and factual—this is a reference, not a blog
+- Use British English spelling (colour, behaviour, organise)
 
-Write the article now in markdown format.`
+# Required Structure
+1. **Title + Definition** — # heading, then one-sentence definition
+2. **Quick Facts table** — Age, Duration, Prevalence (adapt fields to topic)
+3. **Key Information** — 2-3 short sections with ## headings, bullet points preferred
+4. **How-To** (if applicable) — Numbered steps
+5. **See also** — 3-5 related topics as [[wiki links]]
+
+# Rules
+- Target 250-400 words maximum
+- No emotional padding ("you're not alone", "this too shall pass")
+- Tables for comparisons, bullet points over prose
+- End with: *Note: General guidance only. Consult a healthcare provider for specific concerns.*
+
+Write the almanac entry now.`
         } else {
           send({ type: 'status', message: `Found ${searchResults.length} relevant sources...` })
 
@@ -106,7 +113,7 @@ Write the article now in markdown format.`
           temperature: 0.7,
           system: systemPrompt,
           messages: [
-            { role: 'user', content: `Write a comprehensive article about: ${normalizedQuery}` }
+            { role: 'user', content: `Write an almanac entry about: ${normalizedQuery}` }
           ],
         })
 

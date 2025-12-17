@@ -75,7 +75,7 @@ const statusConfig: Record<StatusType, {
   ghost: {
     icon: XCircle,
     label: 'Ghost',
-    className: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
+    className: 'bg-muted text-muted-foreground',
   },
 }
 

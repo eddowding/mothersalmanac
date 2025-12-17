@@ -236,19 +236,19 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
           className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
             isDragActive
               ? 'border-primary bg-primary/5'
-              : 'border-gray-300 hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500'
+              : 'border-border hover:border-muted-foreground/50'
           }`}
         >
           <input {...getInputProps()} />
-          <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+          <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
           {isDragActive ? (
-            <p className="text-sm text-gray-600 dark:text-gray-400">Drop files here...</p>
+            <p className="text-sm text-muted-foreground">Drop files here...</p>
           ) : (
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+              <p className="text-sm text-muted-foreground mb-1">
                 Drag and drop files here, or click to browse
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-500">
+              <p className="text-xs text-muted-foreground/70">
                 PDF, EPUB, DOCX, TXT, MD (max 50MB each)
               </p>
             </div>
@@ -273,15 +273,15 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
             {files.map((fileData, index) => (
               <div
                 key={index}
-                className="border rounded-lg p-4 space-y-3 bg-gray-50 dark:bg-gray-900"
+                className="border rounded-lg p-4 space-y-3 bg-muted/50"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-gray-400" />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <FileText className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-medium text-foreground">
                       {fileData.file.name}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted-foreground">
                       ({(fileData.file.size / 1024 / 1024).toFixed(2)} MB)
                     </span>
                   </div>
@@ -298,7 +298,7 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    <label className="text-xs font-medium text-foreground">
                       Title *
                     </label>
                     <Input
@@ -312,7 +312,7 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    <label className="text-xs font-medium text-foreground">
                       Author
                     </label>
                     <Input
@@ -326,7 +326,7 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    <label className="text-xs font-medium text-foreground">
                       Source Type
                     </label>
                     <Select
@@ -360,10 +360,10 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
             {isUploading && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Uploading...</span>
+                  <span className="text-muted-foreground">Uploading...</span>
                   <span className="font-medium">{Math.round(uploadProgress)}%</span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div className="w-full bg-muted rounded-full h-2">
                   <div
                     className="bg-primary h-2 rounded-full transition-all duration-300"
                     style={{ width: `${uploadProgress}%` }}

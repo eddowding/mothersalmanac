@@ -12,6 +12,8 @@ import {
   Settings,
   BookOpen,
   Lightbulb,
+  Link2,
+  FileStack,
 } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
@@ -35,6 +37,31 @@ const navigation = [
         href: '/admin',
         icon: LayoutDashboard,
       },
+      {
+        title: 'Analytics',
+        href: '/admin/analytics',
+        icon: BarChart3,
+      },
+    ],
+  },
+  {
+    title: 'Content',
+    items: [
+      {
+        title: 'Wiki Pages',
+        href: '/admin/pages',
+        icon: FileStack,
+      },
+      {
+        title: 'Links',
+        href: '/admin/links',
+        icon: Link2,
+      },
+      {
+        title: 'Topic Suggestions',
+        href: '/admin/stubs',
+        icon: Lightbulb,
+      },
     ],
   },
   {
@@ -51,11 +78,6 @@ const navigation = [
         icon: Boxes,
       },
       {
-        title: 'Topic Suggestions',
-        href: '/admin/stubs',
-        icon: Lightbulb,
-      },
-      {
         title: 'Search Testing',
         href: '/admin/search',
         icon: Search,
@@ -63,13 +85,8 @@ const navigation = [
     ],
   },
   {
-    title: 'Management',
+    title: 'System',
     items: [
-      {
-        title: 'Analytics',
-        href: '/admin/analytics',
-        icon: BarChart3,
-      },
       {
         title: 'Settings',
         href: '/admin/settings',

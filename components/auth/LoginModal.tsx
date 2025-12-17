@@ -139,7 +139,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-gray-500">
+              <span className="bg-background px-2 text-muted-foreground">
                 Or continue with email
               </span>
             </div>
@@ -166,8 +166,8 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
 
           {/* Success Message */}
           {success && (
-            <div className="rounded-md bg-green-50 p-4">
-              <p className="text-sm text-green-800">
+            <div className="rounded-md bg-green-100 dark:bg-green-900/30 p-4">
+              <p className="text-sm text-green-800 dark:text-green-400">
                 Check your email for a magic link to sign in.
               </p>
             </div>
@@ -175,13 +175,13 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="rounded-md bg-red-100 dark:bg-red-900/30 p-4">
+              <p className="text-sm text-red-800 dark:text-red-400">{error}</p>
             </div>
           )}
 
           {/* Privacy Note */}
-          <p className="text-center text-xs text-gray-500">
+          <p className="text-center text-xs text-muted-foreground">
             By signing in, you agree to our Terms of Service and Privacy Policy.
           </p>
         </div>

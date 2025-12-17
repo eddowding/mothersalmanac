@@ -234,7 +234,7 @@ export function DocumentCard({
           </div>
 
           {document.processed_at && (
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               Processed{' '}
               {formatDistanceToNow(new Date(document.processed_at), {
                 addSuffix: true,

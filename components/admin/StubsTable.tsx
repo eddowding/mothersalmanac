@@ -109,7 +109,7 @@ export function StubsTable({ stubs }: StubsTableProps) {
                       ? 'bg-green-500'
                       : stub.confidence === 'medium'
                       ? 'bg-yellow-500'
-                      : 'bg-gray-400'
+                      : 'bg-muted-foreground'
                   }`}
                 />
                 {stub.confidence}
@@ -167,7 +167,7 @@ export function StubsTable({ stubs }: StubsTableProps) {
                   variant="ghost"
                   onClick={() => handleDelete(stub)}
                   disabled={deletingId === stub.id}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30"
                 >
                   {deletingId === stub.id ? (
                     <Loader2 className="h-3 w-3 animate-spin" />

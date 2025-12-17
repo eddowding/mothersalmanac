@@ -17,7 +17,8 @@ import {
   Pie,
   Cell,
 } from 'recharts'
-import { FileText, Search as SearchIcon, Users, TrendingUp } from 'lucide-react'
+import { FileText, Search as SearchIcon, Users, TrendingUp, ExternalLink } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { StatCard } from './StatCard'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -38,6 +39,7 @@ interface AnalyticsData {
   documentStats: Array<{ title: string; referenceCount: number; coverage: number }>
   searchVolume: Array<{ date: string; count: number }>
   documentUploads: Array<{ date: string; count: number }>
+  posthogDashboard?: string
 }
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
@@ -96,30 +98,42 @@ export function AnalyticsDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* PostHog Link */}
+      {data.posthogDashboard && (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" asChild>
+            <a href={data.posthogDashboard} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              View User Analytics in PostHog
+            </a>
+          </Button>
+        </div>
+      )}
+
       {/* Overview Stats */}
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard
-          title="Total Searches"
+          title="Total Page Views"
           value={data.overview.totalSearches}
-          description="All-time search queries"
+          description="All-time wiki views"
           icon={SearchIcon}
         />
         <StatCard
-          title="Avg Similarity"
+          title="Avg Confidence"
           value={`${(data.overview.avgSimilarity * 100).toFixed(1)}%`}
-          description="Search result quality"
+          description="Content quality score"
           icon={TrendingUp}
         />
         <StatCard
-          title="Document Coverage"
+          title="Processed Docs"
           value={`${data.overview.topDocumentCoverage}%`}
-          description="Documents used in searches"
+          description="Documents processed"
           icon={FileText}
         />
         <StatCard
-          title="Active Users"
+          title="Wiki Pages"
           value={data.overview.activeUsers}
-          description="Last 30 days"
+          description="Total generated"
           icon={Users}
         />
       </div>

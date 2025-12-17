@@ -1,11 +1,11 @@
 /**
  * Embedding Generation Library
  *
- * Generates vector embeddings using Voyage AI (via Anthropic).
+ * Generates vector embeddings using OpenAI text-embedding-3-small.
  * Supports batch processing, rate limiting, and cost estimation.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 
 export interface EmbeddingResult {
   embedding: number[];
@@ -21,31 +21,37 @@ export interface BatchEmbeddingResult {
 }
 
 // Embedding model configuration
-const EMBEDDING_MODEL = 'voyage-3';
+const EMBEDDING_MODEL = 'text-embedding-3-small';
 const EMBEDDING_DIMENSION = 1536;
-const BATCH_SIZE = 10;
-const RATE_LIMIT_DELAY = 1000; // 1 second between batches
+const BATCH_SIZE = 100; // OpenAI supports up to 2048 inputs per request
+const RATE_LIMIT_DELAY = 200; // 200ms between batches
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 1000;
 
-// Cost estimation (approximate - verify with Anthropic pricing)
-const COST_PER_1M_TOKENS = 0.10; // $0.10 per 1M tokens
+// Cost estimation - OpenAI text-embedding-3-small pricing
+const COST_PER_1M_TOKENS = 0.02; // $0.02 per 1M tokens
+
+// Singleton client
+let openaiClient: OpenAI | null = null;
 
 /**
- * Initialize Anthropic client
+ * Initialize OpenAI client
  */
-function getAnthropicClient(): Anthropic | null {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+function getOpenAIClient(): OpenAI | null {
+  if (openaiClient) return openaiClient;
+
+  const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
     return null;
   }
 
-  return new Anthropic({ apiKey });
+  openaiClient = new OpenAI({ apiKey });
+  return openaiClient;
 }
 
 /**
- * Generate embedding for a single text using Voyage AI
+ * Generate embedding for a single text using OpenAI
  *
  * @param text - Text to generate embedding for
  * @returns Embedding result with vector and metadata
@@ -53,39 +59,34 @@ function getAnthropicClient(): Anthropic | null {
 export async function generateEmbedding(
   text: string
 ): Promise<EmbeddingResult> {
-  const client = getAnthropicClient();
-
   // Validate input
   if (!text || text.trim().length === 0) {
     throw new Error('Text cannot be empty');
   }
 
-  // Normalize text
+  const client = getOpenAIClient();
   const normalizedText = text.trim();
 
-  // If no API key, use mock embeddings (for development/testing)
+  // If no API key, throw error (no more mock embeddings in production)
   if (!client) {
-    console.warn('[Embeddings] No API key found, using mock embeddings');
-    return {
-      embedding: generateMockEmbedding(normalizedText),
-      model: EMBEDDING_MODEL,
-      tokens: estimateTokens(normalizedText),
-    };
+    throw new Error(
+      'OpenAI API key not configured. Set OPENAI_API_KEY environment variable for embeddings.'
+    );
   }
 
   try {
-    // Note: This uses the embeddings endpoint via Anthropic SDK
-    // The actual API call format may vary based on Anthropic's implementation
     const response = await retryWithBackoff(async () => {
-      // Using Anthropic's message API as a proxy for embeddings
-      // In production, use the dedicated embeddings endpoint
-      return await makeEmbeddingRequest(client, normalizedText);
+      return await client.embeddings.create({
+        model: EMBEDDING_MODEL,
+        input: normalizedText,
+        dimensions: EMBEDDING_DIMENSION,
+      });
     });
 
     return {
-      embedding: response.embedding,
-      model: EMBEDDING_MODEL,
-      tokens: estimateTokens(normalizedText),
+      embedding: response.data[0].embedding,
+      model: response.model,
+      tokens: response.usage.total_tokens,
     };
   } catch (error) {
     throw new Error(
@@ -97,8 +98,7 @@ export async function generateEmbedding(
 /**
  * Generate embeddings for multiple texts (batch processing)
  *
- * More efficient than individual calls. Automatically batches requests
- * and handles rate limiting.
+ * More efficient than individual calls. Uses OpenAI's batch embedding API.
  *
  * @param texts - Array of texts to generate embeddings for
  * @returns Array of embedding results
@@ -114,7 +114,14 @@ export async function generateEmbeddings(
   const validTexts = texts.filter(text => text && text.trim().length > 0);
   if (validTexts.length !== texts.length) {
     console.warn(
-      `Filtered out ${texts.length - validTexts.length} empty texts`
+      `[Embeddings] Filtered out ${texts.length - validTexts.length} empty texts`
+    );
+  }
+
+  const client = getOpenAIClient();
+  if (!client) {
+    throw new Error(
+      'OpenAI API key not configured. Set OPENAI_API_KEY environment variable for embeddings.'
     );
   }
 
@@ -122,13 +129,35 @@ export async function generateEmbeddings(
 
   // Process in batches
   for (let i = 0; i < validTexts.length; i += BATCH_SIZE) {
-    const batch = validTexts.slice(i, i + BATCH_SIZE);
+    const batch = validTexts.slice(i, i + BATCH_SIZE).map(t => t.trim());
 
-    // Process batch in parallel
-    const batchPromises = batch.map(text => generateEmbedding(text));
-    const batchResults = await Promise.all(batchPromises);
+    console.log(
+      `[Embeddings] Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(validTexts.length / BATCH_SIZE)} (${batch.length} texts)`
+    );
 
-    results.push(...batchResults);
+    try {
+      const response = await retryWithBackoff(async () => {
+        return await client.embeddings.create({
+          model: EMBEDDING_MODEL,
+          input: batch,
+          dimensions: EMBEDDING_DIMENSION,
+        });
+      });
+
+      // Map response to results in order
+      const tokensPerText = Math.ceil(response.usage.total_tokens / batch.length);
+
+      for (const item of response.data) {
+        results.push({
+          embedding: item.embedding,
+          model: response.model,
+          tokens: tokensPerText,
+        });
+      }
+    } catch (error) {
+      console.error(`[Embeddings] Batch failed:`, error);
+      throw error;
+    }
 
     // Rate limiting: wait between batches
     if (i + BATCH_SIZE < validTexts.length) {
@@ -156,64 +185,16 @@ export async function generateEmbeddingsBatch(
 
   const embeddings = results.map(r => r.embedding);
 
+  console.log(
+    `[Embeddings] Batch complete: ${texts.length} texts, ${totalTokens} tokens, $${estimatedCost.toFixed(4)} cost, ${Date.now() - startTime}ms`
+  );
+
   return {
     embeddings,
     model: EMBEDDING_MODEL,
     totalTokens,
     estimatedCost,
   };
-}
-
-/**
- * Make embedding request via Anthropic API
- *
- * Note: This is a placeholder. The actual implementation depends on
- * Anthropic's embeddings API format. Update this when using the official endpoint.
- */
-async function makeEmbeddingRequest(
-  client: Anthropic | null,
-  text: string
-): Promise<{ embedding: number[] }> {
-  // PLACEHOLDER: Replace with actual Anthropic embeddings API call
-  // For now, we'll simulate the response structure
-
-  // In production, use something like:
-  // const response = await client.embeddings.create({
-  //   model: EMBEDDING_MODEL,
-  //   input: text,
-  // });
-  // return { embedding: response.data[0].embedding };
-
-  // TEMPORARY: Generate a mock embedding for development
-  // Remove this and use actual API when available
-  console.warn('Using mock embedding generation - replace with actual API call');
-
-  return {
-    embedding: generateMockEmbedding(text),
-  };
-}
-
-/**
- * Generate mock embedding for development/testing
- * REMOVE IN PRODUCTION - Use actual Voyage AI API
- */
-function generateMockEmbedding(text: string): number[] {
-  // Create deterministic mock embedding based on text
-  const seed = text.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const embedding: number[] = [];
-
-  for (let i = 0; i < EMBEDDING_DIMENSION; i++) {
-    // Generate pseudo-random number based on seed and index
-    const value = Math.sin(seed * (i + 1) * 0.1) * Math.cos(seed * (i + 1) * 0.05);
-    embedding.push(value);
-  }
-
-  // Normalize to unit vector
-  const magnitude = Math.sqrt(
-    embedding.reduce((sum, val) => sum + val * val, 0)
-  );
-
-  return embedding.map(val => val / magnitude);
 }
 
 /**
@@ -233,6 +214,7 @@ async function retryWithBackoff<T>(
 
     // Check if error is retryable
     if (isRetryableError(error)) {
+      console.warn(`[Embeddings] Retrying in ${delay}ms... (${retries} retries left)`);
       await sleep(delay);
       return retryWithBackoff(fn, retries - 1, delay * 2);
     }
@@ -245,15 +227,18 @@ async function retryWithBackoff<T>(
  * Check if error should be retried
  */
 function isRetryableError(error: unknown): boolean {
+  if (error instanceof OpenAI.APIError) {
+    // Retry on rate limits and server errors
+    return error.status === 429 || (error.status >= 500 && error.status < 600);
+  }
+
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
     return (
       message.includes('rate limit') ||
       message.includes('timeout') ||
       message.includes('network') ||
-      message.includes('502') ||
-      message.includes('503') ||
-      message.includes('504')
+      message.includes('econnreset')
     );
   }
   return false;
@@ -301,9 +286,9 @@ export function estimateBatchCost(texts: string[]): {
   averageTokensPerText: number;
 } {
   const totalLength = texts.reduce((sum, text) => sum + text.length, 0);
-  const totalTokens = estimateTokens(totalLength.toString());
+  const totalTokens = Math.ceil(totalLength / 4);
   const totalCost = (totalTokens / 1_000_000) * COST_PER_1M_TOKENS;
-  const averageTokensPerText = Math.ceil(totalTokens / texts.length);
+  const averageTokensPerText = texts.length > 0 ? Math.ceil(totalTokens / texts.length) : 0;
 
   return {
     totalTokens,
@@ -348,4 +333,11 @@ export function getEmbeddingConfig() {
     rateLimitDelay: RATE_LIMIT_DELAY,
     costPer1MTokens: COST_PER_1M_TOKENS,
   };
+}
+
+/**
+ * Check if embeddings API is configured
+ */
+export function isConfigured(): boolean {
+  return !!process.env.OPENAI_API_KEY;
 }

@@ -9,7 +9,7 @@
  * 5. Quality scoring and metadata
  */
 
-import { generateWithMetadata, estimateGenerationCost } from '@/lib/anthropic/client'
+import { generate as routerGenerate, estimateCost as routerEstimateCost, type RoutingContext } from '@/lib/ai/router'
 import { vectorSearch, type SearchResult } from '@/lib/rag/search'
 import { assembleContext } from '@/lib/rag/context'
 import { buildWikiPrompt } from './prompts'
@@ -49,6 +49,8 @@ export interface GeneratedPage {
       total_cost: number
     }
     model: string
+    provider: string
+    routing_reason: string
     search_stats: {
       total_results: number
       avg_similarity: number
@@ -228,9 +230,20 @@ Use your general knowledge. Include: definition, quick facts table, key informat
       }
     }
 
-    // Step 4: Generate with Claude
-    console.log('[Wiki Generator] Step 4: Generating with Claude...')
-    const response = await generateWithMetadata(
+    // Step 4: Generate with AI (router selects optimal model)
+    // Calculate average similarity for routing decision
+    const avgSimilarity = searchResults.length > 0
+      ? searchResults.reduce((sum, r) => sum + r.similarity, 0) / searchResults.length
+      : 0
+
+    const routingContext: RoutingContext = {
+      taskType: 'wiki_generation',
+      hasRagContext: !usedAIFallback && searchResults.length > 0,
+      ragConfidence: avgSimilarity,
+    }
+
+    console.log(`[Wiki Generator] Step 4: Generating with AI (RAG: ${!usedAIFallback}, confidence: ${(avgSimilarity * 100).toFixed(0)}%)...`)
+    const response = await routerGenerate(
       [
         {
           role: 'user',
@@ -238,10 +251,10 @@ Use your general knowledge. Include: definition, quick facts table, key informat
         },
       ],
       systemPrompt,
+      routingContext,
       {
         temperature: opts.temperature,
         maxTokens: 4096,
-        model: 'claude-sonnet-4-5-20250929',
       }
     )
 
@@ -287,17 +300,14 @@ Use your general knowledge. Include: definition, quick facts table, key informat
       : calculateConfidence(searchResults, content, sources.length)
     console.log(`[Wiki Generator] Confidence: ${(confidence * 100).toFixed(1)}%`)
 
-    // Step 8: Calculate cost
-    const totalCost = estimateGenerationCost(
-      response.usage.inputTokens,
-      response.usage.outputTokens,
-      response.model
-    )
+    // Step 8: Get cost from router response
+    const totalCost = response.estimatedCost
 
     const generationTime = Date.now() - startTime
 
     console.log(
       `[Wiki Generator] Generation complete in ${generationTime}ms, ` +
+      `provider: ${response.provider}, model: ${response.model}, ` +
       `cost: $${totalCost.toFixed(4)}, ` +
       `tokens: ${response.usage.inputTokens + response.usage.outputTokens}`
     )
@@ -344,6 +354,8 @@ Use your general knowledge. Include: definition, quick facts table, key informat
           total_cost: totalCost,
         },
         model: response.model,
+        provider: response.provider,
+        routing_reason: response.routingReason,
         search_stats: searchStats,
         ai_fallback: usedAIFallback,
         generation_source: usedAIFallback ? 'ai_knowledge' : 'rag_documents',
@@ -474,17 +486,25 @@ function generateExcerpt(content: string): string {
  *
  * @param contextLength - Length of RAG context
  * @param outputLength - Expected output length (default: 3000)
+ * @param hasRagContext - Whether RAG sources are available (affects model selection)
  * @returns Cost estimate in USD
  */
 export function estimatePageGenerationCost(
   contextLength: number,
-  outputLength: number = 3000
+  outputLength: number = 3000,
+  hasRagContext: boolean = true
 ): number {
   // Rough token estimation: ~4 chars per token
   const inputTokens = Math.ceil((contextLength + 2000) / 4) // Context + prompt
   const outputTokens = Math.ceil(outputLength / 4)
 
-  return estimateGenerationCost(inputTokens, outputTokens, 'claude-sonnet-4-5-20250929')
+  const { cost } = routerEstimateCost(inputTokens, outputTokens, {
+    taskType: 'wiki_generation',
+    hasRagContext,
+    ragConfidence: hasRagContext ? 0.8 : 0, // Assume decent confidence for estimation
+  })
+
+  return cost
 }
 
 /**

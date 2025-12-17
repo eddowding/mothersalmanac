@@ -114,37 +114,39 @@
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  /* Warm nighttime palette - like reading by candlelight */
+  --background: oklch(0.15 0.02 50);
+  --foreground: oklch(0.92 0.02 80);
+  --card: oklch(0.18 0.025 50);
+  --card-foreground: oklch(0.92 0.02 80);
+  --popover: oklch(0.18 0.025 50);
+  --popover-foreground: oklch(0.92 0.02 80);
+  /* Warm sage green for primary */
+  --primary: oklch(0.65 0.08 140);
+  --primary-foreground: oklch(0.15 0.02 50);
+  --secondary: oklch(0.25 0.03 50);
+  --secondary-foreground: oklch(0.92 0.02 80);
+  --muted: oklch(0.22 0.025 50);
+  --muted-foreground: oklch(0.65 0.03 60);
+  --accent: oklch(0.28 0.04 60);
+  --accent-foreground: oklch(0.92 0.02 80);
+  --destructive: oklch(0.65 0.2 25);
+  --border: oklch(0.28 0.03 50);
+  --input: oklch(0.22 0.025 50);
+  --ring: oklch(0.55 0.06 140);
+  --chart-1: oklch(0.65 0.12 140);
+  --chart-2: oklch(0.65 0.1 40);
+  --chart-3: oklch(0.7 0.12 80);
+  --chart-4: oklch(0.6 0.1 200);
+  --chart-5: oklch(0.65 0.15 25);
+  --sidebar: oklch(0.14 0.02 50);
+  --sidebar-foreground: oklch(0.92 0.02 80);
+  --sidebar-primary: oklch(0.65 0.08 140);
+  --sidebar-primary-foreground: oklch(0.15 0.02 50);
+  --sidebar-accent: oklch(0.25 0.03 50);
+  --sidebar-accent-foreground: oklch(0.92 0.02 80);
+  --sidebar-border: oklch(0.28 0.03 50);
+  --sidebar-ring: oklch(0.55 0.06 140);
 }
 
 @layer base {
@@ -166,16 +168,15 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: hsl(var(--color-almanac-cream-100));
+    @apply bg-muted;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--color-almanac-sage-300));
-    border-radius: 5px;
+    @apply bg-muted-foreground/30 rounded-[5px];
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--color-almanac-sage-500));
+    @apply bg-muted-foreground/50;
   }
 }
 
@@ -301,24 +302,32 @@
     @apply text-sm text-muted-foreground italic mt-2 text-center;
   }
 
-  /* Dark mode adjustments */
+  /* Dark mode adjustments - warm candlelight theme */
   .dark .prose-almanac h1,
   .dark .prose-almanac h2,
   .dark .prose-almanac h3,
   .dark .prose-almanac h4 {
-    @apply text-[hsl(var(--color-almanac-earth-200))];
+    @apply text-foreground;
+  }
+
+  .dark .prose-almanac strong {
+    @apply text-foreground;
   }
 
   .dark .prose-almanac code {
-    @apply bg-gray-800 text-[hsl(var(--color-almanac-sage-400))];
+    @apply bg-secondary text-primary;
   }
 
   .dark .prose-almanac blockquote {
-    @apply bg-gray-900/50 border-[hsl(var(--color-almanac-sage-600))];
+    @apply bg-secondary/50 border-primary/50;
   }
 
   .dark .prose-almanac pre {
-    @apply bg-gray-900 border-gray-700;
+    @apply bg-secondary border-border;
+  }
+
+  .dark .prose-almanac a {
+    @apply text-primary hover:text-primary/80;
   }
 }
 

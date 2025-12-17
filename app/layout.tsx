@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Lora, JetBrains_Mono } from "next/font/google";
 import { Toaster } from '@/components/ui/sonner'
 import { QueryProvider } from '@/components/providers/QueryProvider'
+import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import "./globals.css";
 
 // Sans-serif for body text - clean and readable
@@ -61,12 +62,14 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body
-        className={`${inter.variable} ${lora.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+        className={`${inter.variable} ${lora.variable} ${jetbrainsMono.variable} font-sans antialiased transition-colors duration-300`}
       >
-        <QueryProvider>
-          {children}
-          <Toaster />
-        </QueryProvider>
+        <ThemeProvider>
+          <QueryProvider>
+            {children}
+            <Toaster />
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

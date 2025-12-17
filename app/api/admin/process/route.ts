@@ -71,41 +71,46 @@ export async function POST(request: NextRequest) {
     }
 
     if (TRIGGER_ENABLED) {
-      // Use Trigger.dev for background processing (recommended)
-      const handle = await tasks.trigger<typeof processDocumentTask>(
-        'process-document',
-        { documentId }
-      );
-
-      console.log(`[API] Triggered processing task: ${handle.id}`);
-
-      return NextResponse.json({
-        success: true,
-        message: 'Processing queued via Trigger.dev',
-        documentId,
-        taskId: handle.id,
-      });
-    } else {
-      // Fallback: synchronous processing (will timeout on large files)
-      console.log(`[API] Processing synchronously (Trigger.dev not configured)`);
-
-      const result = await processDocument(documentId);
-
-      if (result.status === 'failure') {
-        return NextResponse.json(
-          { error: result.error || 'Processing failed' },
-          { status: 500 }
+      // Try Trigger.dev for background processing (recommended)
+      try {
+        const handle = await tasks.trigger<typeof processDocumentTask>(
+          'process-document',
+          { documentId }
         );
-      }
 
-      return NextResponse.json({
-        success: true,
-        message: 'Processing completed',
-        documentId,
-        chunksCreated: result.chunksCreated,
-        processingTime: result.processingTime,
-      });
+        console.log(`[API] Triggered processing task: ${handle.id}`);
+
+        return NextResponse.json({
+          success: true,
+          message: 'Processing queued via Trigger.dev',
+          documentId,
+          taskId: handle.id,
+        });
+      } catch (triggerError) {
+        // Trigger.dev failed, fall back to sync processing
+        console.warn(`[API] Trigger.dev failed, falling back to sync:`, triggerError);
+      }
     }
+
+    // Fallback: synchronous processing (will timeout on large files)
+    console.log(`[API] Processing synchronously`);
+
+    const result = await processDocument(documentId);
+
+    if (result.status === 'failure') {
+      return NextResponse.json(
+        { error: result.error || 'Processing failed' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Processing completed',
+      documentId,
+      chunksCreated: result.chunksCreated,
+      processingTime: result.processingTime,
+    });
 
   } catch (error) {
     console.error('[API] Process document error:', error);

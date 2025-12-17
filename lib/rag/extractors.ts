@@ -264,12 +264,23 @@ export async function extractTextFromTXT(
  *
  * @param fileBuffer - Buffer containing file data
  * @param mimeType - MIME type of the file
+ * @param fileName - Optional file name for extension-based fallback
  * @returns Extracted text and metadata
  */
 export async function extractText(
   fileBuffer: Buffer,
-  mimeType: string
+  mimeType?: string,
+  fileName?: string
 ): Promise<ExtractionResult> {
+  // If no mime type, try to extract by file extension
+  if (!mimeType && fileName) {
+    return extractTextByExtension(fileBuffer, fileName);
+  }
+
+  if (!mimeType) {
+    throw new Error('No MIME type or file name provided for text extraction');
+  }
+
   // Normalize MIME type
   const normalizedMime = mimeType.toLowerCase().trim();
 

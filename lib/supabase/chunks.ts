@@ -390,6 +390,31 @@ export async function getDocument(documentId: string): Promise<any> {
 }
 
 /**
+ * Get document by ID using admin client (for background jobs)
+ *
+ * @param documentId - ID of the document
+ * @returns Document data
+ */
+export async function getDocumentAdmin(documentId: string): Promise<any> {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('id', documentId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return null; // Not found
+    }
+    throw new Error(`Failed to fetch document: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
  * List all documents for a user
  *
  * @param userId - ID of the user

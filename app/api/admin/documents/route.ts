@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     // Calculate statistics
     const { data: statsData } = await supabase
       .from('documents')
-      .select('processed_status, document_chunks(count)')
+      .select('processed_status, processed_at, document_chunks(count)')
 
     const stats = {
       total: count || 0,
@@ -101,10 +101,8 @@ export async function GET(request: NextRequest) {
         }
 
         // Count processed today
-        if (
-          doc.processed_at &&
-          new Date(doc.processed_at) >= todayStart
-        ) {
+        const processedAt = (doc as any).processed_at || (doc as any).processing_completed_at
+        if (processedAt && new Date(processedAt) >= todayStart) {
           stats.processedToday++
         }
       })

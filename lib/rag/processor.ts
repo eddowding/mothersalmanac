@@ -18,6 +18,7 @@ import {
   insertChunks,
   deleteChunksByDocument,
   getDocument,
+  getDocumentAdmin,
 } from '../supabase/chunks';
 
 export interface ProcessingResult {
@@ -65,19 +66,30 @@ export async function processDocument(
     });
 
     // Step 2: Fetch document metadata
-    const document = await getDocument(documentId);
+    const document = await getDocumentAdmin(documentId);
     if (!document) {
       throw new Error('Document not found');
     }
 
-    console.log(`[Processor] Document found: ${document.title} (${document.file_name})`);
+    const metadata = (document.metadata || {}) as Record<string, any>;
+    const fileName =
+      document.file_name ||
+      metadata.original_filename ||
+      metadata.file_name ||
+      document.file_path?.split('/').pop() ||
+      document.title ||
+      'document';
+
+    const mimeType = document.mime_type || metadata.content_type || metadata.mime_type;
+
+    console.log(`[Processor] Document found: ${document.title} (${fileName})`);
 
     // Step 3: Download file from Supabase Storage
     const fileBuffer = await downloadFile(document.file_path);
     console.log(`[Processor] Downloaded file: ${fileBuffer.length} bytes`);
 
-    // Step 4: Extract text from file
-    const extractionResult = await extractText(fileBuffer, document.mime_type);
+    // Step 4: Extract text from file (fallback to stored metadata/path when mime or name missing)
+    const extractionResult = await extractText(fileBuffer, mimeType, fileName);
     const cleanText = cleanExtractedText(extractionResult.text);
     console.log(`[Processor] Extracted text: ${cleanText.length} characters, ${extractionResult.metadata.wordCount} words`);
 
@@ -317,7 +329,7 @@ export async function getProcessingStatus(
   }
 
   return {
-    status: document.status,
+    status: document.processed_status,
     progress: {
       startedAt: document.processing_started_at,
       completedAt: document.processing_completed_at,
@@ -343,11 +355,11 @@ export async function canProcessDocument(
     return { can: false, reason: 'Document not found' };
   }
 
-  if (document.status === 'processing') {
+  if (document.processed_status === 'processing') {
     return { can: false, reason: 'Document is already being processed' };
   }
 
-  if (document.status === 'completed') {
+  if (document.processed_status === 'completed') {
     return { can: true, reason: 'Document can be reprocessed' };
   }
 

@@ -49,7 +49,8 @@ export async function GET(request: NextRequest) {
         created_at,
         documents (
           title,
-          file_name
+          file_path,
+          metadata
         )
       `
       )
@@ -65,7 +66,27 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error
 
-    return NextResponse.json({ chunks })
+    // Normalize document info to include a safe file_name derived from metadata/path
+    const normalizedChunks = (chunks as any[] | null)?.map((chunk) => {
+      const doc = (chunk as any).documents || {}
+      const metadata = (doc.metadata || {}) as Record<string, any>
+      const fileName =
+        doc.file_name ||
+        metadata.original_filename ||
+        metadata.file_name ||
+        doc.file_path?.split('/')?.pop() ||
+        'document'
+
+      return {
+        ...chunk,
+        documents: {
+          title: doc.title,
+          file_name: fileName,
+        },
+      }
+    }) ?? []
+
+    return NextResponse.json({ chunks: normalizedChunks })
   } catch (error) {
     console.error('Error fetching chunks:', error)
     return NextResponse.json(

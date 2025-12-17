@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/actions'
+import { generateWikiPage } from '@/lib/wiki/generator'
+import { invalidateCache, cachePage } from '@/lib/wiki/cache'
+import { revalidatePath } from 'next/cache'
 
 /**
  * GET /api/admin/pages
@@ -227,7 +230,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 /**
- * POST /api/admin/pages/regenerate
+ * POST /api/admin/pages
  *
  * Trigger regeneration of a wiki page.
  */
@@ -246,24 +249,80 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'regenerate') {
-      // Call the regenerate API
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/wiki/regenerate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug, force: true }),
-      })
+      const supabase = await createClient()
 
-      if (!response.ok) {
-        const error = await response.json()
-        return NextResponse.json({ error: error.error || 'Regeneration failed' }, { status: 500 })
+      // Get existing page to extract query
+      const { data: existingPage } = await supabase
+        .from('wiki_pages')
+        .select('metadata')
+        .eq('slug', slug)
+        .single() as { data: { metadata: { query: string } } | null }
+
+      if (!existingPage?.metadata?.query) {
+        return NextResponse.json(
+          { error: 'Page not found or missing query metadata' },
+          { status: 404 }
+        )
       }
 
-      return NextResponse.json({ success: true, message: 'Regeneration started' })
+      const query = existingPage.metadata.query
+      console.log(`[Admin Regenerate] Regenerating "${slug}" from query: "${query}"`)
+
+      // Invalidate existing cache
+      await invalidateCache(slug)
+
+      // Regenerate page using original query
+      const generatedPage = await generateWikiPage(query, {
+        temperature: 0.7,
+        extractEntities: true,
+      })
+
+      // Update existing page in database
+      const { error: updateError } = await (supabase as any)
+        .from('wiki_pages')
+        .update({
+          content: generatedPage.content,
+          excerpt: generatedPage.excerpt,
+          confidence_score: generatedPage.confidence_score,
+          generated_at: generatedPage.generated_at,
+          ttl_expires_at: generatedPage.ttl_expires_at,
+          published: true,
+          metadata: generatedPage.metadata,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('slug', slug)
+
+      if (updateError) {
+        throw new Error(`Failed to update page: ${updateError.message}`)
+      }
+
+      // Cache new page
+      await cachePage({
+        ...generatedPage,
+        slug,
+      })
+
+      // Revalidate Next.js cache
+      revalidatePath(`/wiki/${slug}`)
+      revalidatePath('/wiki')
+
+      console.log(`[Admin Regenerate] Successfully regenerated: ${slug}`)
+
+      return NextResponse.json({
+        success: true,
+        message: 'Page regenerated successfully',
+        page: {
+          slug,
+          title: generatedPage.title,
+          confidence_score: generatedPage.confidence_score,
+          generation_source: generatedPage.metadata.generation_source,
+        },
+      })
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   } catch (error) {
-    console.error('Action error:', error)
+    console.error('[Admin Regenerate] Error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

@@ -135,11 +135,15 @@ export default function AdminPagesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slug: page.slug, action: 'regenerate' }),
       })
-      if (!response.ok) throw new Error('Failed to regenerate')
-      toast.success('Regeneration started')
-      setTimeout(fetchPages, 5000)
-    } catch {
-      toast.error('Failed to regenerate')
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to regenerate')
+      }
+      const source = data.page?.generation_source === 'rag_documents' ? 'RAG' : 'AI'
+      toast.success(`Page regenerated using ${source}`)
+      fetchPages()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to regenerate')
     } finally {
       setRegeneratingIds(prev => {
         const next = new Set(prev)

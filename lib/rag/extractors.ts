@@ -4,10 +4,16 @@
  * Extracts text content from various file formats:
  * - PDF (.pdf)
  * - Microsoft Word (.docx)
+ * - EPUB (.epub)
  * - Plain text (.txt, .md)
  */
 
 import * as mammoth from 'mammoth';
+import EPub from 'epub2';
+import { promisify } from 'util';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 // pdf-parse is a CommonJS module, so we need to handle it specially
 // We'll dynamically import it when needed
@@ -125,6 +131,92 @@ export async function extractTextFromDOCX(
 }
 
 /**
+ * Extract text from EPUB file
+ *
+ * EPUBs are ZIP archives containing HTML chapters.
+ * Extracts text from all chapters in reading order.
+ *
+ * @param fileBuffer - Buffer containing EPUB file data
+ * @returns Extracted text and metadata
+ */
+export async function extractTextFromEPUB(
+  fileBuffer: Buffer
+): Promise<ExtractionResult> {
+  const startTime = Date.now();
+
+  // epub2 requires a file path, so we write to temp file
+  const tempDir = os.tmpdir();
+  const tempFile = path.join(tempDir, `epub_${Date.now()}_${Math.random().toString(36).slice(2)}.epub`);
+
+  try {
+    // Write buffer to temp file
+    await fs.promises.writeFile(tempFile, fileBuffer);
+
+    // Parse EPUB
+    const epub = await EPub.createAsync(tempFile);
+
+    // Get chapter IDs in reading order
+    const chapterIds = epub.flow.map((chapter: any) => chapter.id);
+
+    // Extract text from each chapter
+    const chapters: string[] = [];
+
+    for (const id of chapterIds) {
+      try {
+        const chapter = await promisify(epub.getChapter.bind(epub))(id) as string;
+        if (chapter) {
+          // Strip HTML tags to get plain text
+          const plainText = chapter
+            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '') // Remove scripts
+            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '') // Remove styles
+            .replace(/<[^>]+>/g, ' ') // Remove HTML tags
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#\d+;/g, '') // Remove numeric entities
+            .replace(/\s+/g, ' ') // Normalize whitespace
+            .trim();
+
+          if (plainText.length > 0) {
+            chapters.push(plainText);
+          }
+        }
+      } catch (chapterError) {
+        console.warn(`Failed to extract chapter ${id}:`, chapterError);
+      }
+    }
+
+    const text = chapters.join('\n\n');
+    const extractionTime = Date.now() - startTime;
+    const wordCount = countWords(text);
+    const charCount = text.length;
+
+    return {
+      text,
+      metadata: {
+        pageCount: chapterIds.length, // Use chapter count as "page" count
+        wordCount,
+        charCount,
+        extractionTime,
+      },
+    };
+  } catch (error) {
+    throw new Error(
+      `Failed to extract text from EPUB: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  } finally {
+    // Clean up temp file
+    try {
+      await fs.promises.unlink(tempFile);
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
+}
+
+/**
  * Extract text from plain text file
  *
  * Handles .txt, .md, and other text-based formats.
@@ -195,6 +287,13 @@ export async function extractText(
   }
 
   if (
+    normalizedMime === 'application/epub+zip' ||
+    normalizedMime.includes('epub')
+  ) {
+    return extractTextFromEPUB(fileBuffer);
+  }
+
+  if (
     normalizedMime === 'text/plain' ||
     normalizedMime === 'text/markdown' ||
     normalizedMime.startsWith('text/')
@@ -225,6 +324,9 @@ export async function extractTextByExtension(
     case 'docx':
     case 'doc':
       return extractTextFromDOCX(fileBuffer);
+
+    case 'epub':
+      return extractTextFromEPUB(fileBuffer);
 
     case 'txt':
     case 'md':
@@ -261,7 +363,7 @@ export function validateFile(
 
   // Check file extension
   const extension = fileName.split('.').pop()?.toLowerCase();
-  const supportedExtensions = ['pdf', 'docx', 'doc', 'txt', 'md'];
+  const supportedExtensions = ['pdf', 'docx', 'doc', 'epub', 'txt', 'md'];
 
   if (!extension || !supportedExtensions.includes(extension)) {
     return {
@@ -300,11 +402,12 @@ export function getSupportedFileTypes(): {
   maxSizeMB: number;
 } {
   return {
-    extensions: ['pdf', 'docx', 'doc', 'txt', 'md'],
+    extensions: ['pdf', 'docx', 'doc', 'epub', 'txt', 'md'],
     mimeTypes: [
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/msword',
+      'application/epub+zip',
       'text/plain',
       'text/markdown',
     ],
@@ -332,6 +435,10 @@ export function estimateExtractionTime(
 
   if (mimeType.includes('docx') || mimeType.includes('word')) {
     return fileSizeMB * 1000; // ~1 second per MB for DOCX
+  }
+
+  if (mimeType.includes('epub')) {
+    return fileSizeMB * 1500; // ~1.5 seconds per MB for EPUB
   }
 
   return fileSizeMB * 100; // ~0.1 seconds per MB for text files

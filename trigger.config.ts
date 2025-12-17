@@ -1,11 +1,10 @@
 import { defineConfig } from "@trigger.dev/sdk/v3";
 
 export default defineConfig({
-  project: "mothersalmanac",
+  project: "proj_ccvseuaftpjxzkfypmix",
   runtime: "node",
   logLevel: "log",
   maxDuration: 300, // 5 minutes max for document processing
-  // Self-hosted URL is set via TRIGGER_API_URL env var
   retries: {
     enabledInDev: true,
     default: {

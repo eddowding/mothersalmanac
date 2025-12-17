@@ -149,7 +149,7 @@ export function RabbitHole({ currentSlug, className }: RabbitHoleProps) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Rabbit className="h-5 w-5 text-almanac-sage-600 dark:text-almanac-sage-400" />
-          <h3 className="font-semibold text-sm text-almanac-earth-700 dark:text-almanac-earth-300">
+          <h3 className="font-semibold text-sm text-almanac-earth-700 dark:text-foreground">
             Rabbit Hole Mode
           </h3>
         </div>

@@ -30,7 +30,7 @@ export async function Backlinks({ slug, className }: BacklinksProps) {
   return (
     <Card className={cn('p-4 no-print', className)}>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-sm text-almanac-earth-700 dark:text-almanac-earth-300 flex items-center gap-2">
+        <h3 className="font-semibold text-sm text-almanac-earth-700 dark:text-foreground flex items-center gap-2">
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Pages that link here
         </h3>
@@ -115,7 +115,7 @@ function getStrengthColor(strength: number): string {
   if (strength >= 0.3) {
     return 'bg-amber-500 dark:bg-amber-600'
   }
-  return 'bg-gray-400 dark:bg-gray-600'
+  return 'bg-muted-foreground'
 }
 
 /**

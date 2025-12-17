@@ -102,7 +102,7 @@ export function LinkWithPreview({ href, children }: Props) {
             maxWidth: 'calc(100vw - 2rem)',
           }}
         >
-          <Card className="p-4 shadow-lg border border-almanac-sage-200 dark:border-almanac-sage-700 bg-white dark:bg-gray-900">
+          <Card className="p-4 shadow-lg border border-almanac-sage-200 dark:border-border bg-white dark:bg-card">
             {isLoading ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -110,7 +110,7 @@ export function LinkWithPreview({ href, children }: Props) {
               </div>
             ) : preview ? (
               <div className="space-y-2">
-                <h4 className="font-semibold text-sm text-almanac-earth-700 dark:text-almanac-earth-300">
+                <h4 className="font-semibold text-sm text-almanac-earth-700 dark:text-foreground">
                   {preview.title}
                 </h4>
                 <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">

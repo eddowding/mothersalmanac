@@ -38,7 +38,7 @@ function ConfidenceBadge({ score }: { score: number }) {
     },
     low: {
       label: 'Limited sources',
-      className: 'bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400',
+      className: 'bg-muted text-muted-foreground hover:bg-muted/80',
       description: 'This page has limited source material available.',
     },
   }[level]
@@ -92,12 +92,12 @@ export function PageHeader({
     <header className="wiki-page-header border-b border-border bg-gradient-to-b from-almanac-cream-50 to-transparent dark:from-gray-900/20">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <h1 className="font-serif text-4xl md:text-5xl font-bold text-almanac-earth-800 dark:text-almanac-earth-200 mb-4">
+          <h1 className="font-serif text-4xl md:text-5xl font-bold text-almanac-earth-800 dark:text-foreground mb-4">
             {title}
           </h1>
 
           {/* Metadata bar */}
-          <div className="flex flex-wrap gap-3 items-center text-sm text-almanac-earth-600 dark:text-almanac-earth-400">
+          <div className="flex flex-wrap gap-3 items-center text-sm text-almanac-earth-600 dark:text-muted-foreground">
             <ConfidenceBadge score={confidence} />
 
             <span className="text-border" aria-hidden="true">

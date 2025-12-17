@@ -335,7 +335,7 @@ export function KnowledgeGraph({
       </div>
 
       {/* Legend */}
-      <div className="absolute bottom-4 left-4 z-10 bg-white dark:bg-gray-900 rounded-md p-3 shadow-md border border-border">
+      <div className="absolute bottom-4 left-4 z-10 bg-white dark:bg-card rounded-md p-3 shadow-md border border-border">
         <p className="text-xs font-medium mb-2 text-muted-foreground">Categories</p>
         <div className="flex flex-wrap gap-2">
           {Object.entries(CATEGORY_COLORS).map(([category, color]) => (
@@ -353,7 +353,7 @@ export function KnowledgeGraph({
       </div>
 
       {/* Instructions */}
-      <div className="absolute bottom-4 right-4 z-10 bg-white dark:bg-gray-900 rounded-md p-2 shadow-md border border-border text-xs text-muted-foreground">
+      <div className="absolute bottom-4 right-4 z-10 bg-white dark:bg-card rounded-md p-2 shadow-md border border-border text-xs text-muted-foreground">
         Drag to pan • Scroll to zoom • Click node to navigate
       </div>
     </Card>

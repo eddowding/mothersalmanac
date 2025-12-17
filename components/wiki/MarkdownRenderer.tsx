@@ -69,10 +69,10 @@ export function MarkdownRenderer({ content, entities = [] }: Props) {
           h2: ({ children }) => {
             const id = slugify(children)
             return (
-              <h2 id={id} className="font-serif text-3xl text-almanac-earth-700 dark:text-almanac-earth-300 mt-8 mb-4 scroll-mt-24 group">
+              <h2 id={id} className="font-serif text-3xl text-almanac-earth-700 dark:text-foreground mt-8 mb-4 scroll-mt-24 group">
                 <a
                   href={`#${id}`}
-                  className="no-underline hover:underline decoration-almanac-sage-400"
+                  className="no-underline hover:underline decoration-almanac-sage-400 dark:decoration-primary/50"
                   aria-label={`Link to section: ${children}`}
                 >
                   {children}
@@ -83,10 +83,10 @@ export function MarkdownRenderer({ content, entities = [] }: Props) {
           h3: ({ children }) => {
             const id = slugify(children)
             return (
-              <h3 id={id} className="font-serif text-2xl text-almanac-earth-700 dark:text-almanac-earth-300 mt-6 mb-3 scroll-mt-24 group">
+              <h3 id={id} className="font-serif text-2xl text-almanac-earth-700 dark:text-foreground mt-6 mb-3 scroll-mt-24 group">
                 <a
                   href={`#${id}`}
-                  className="no-underline hover:underline decoration-almanac-sage-400"
+                  className="no-underline hover:underline decoration-almanac-sage-400 dark:decoration-primary/50"
                   aria-label={`Link to section: ${children}`}
                 >
                   {children}
@@ -95,7 +95,7 @@ export function MarkdownRenderer({ content, entities = [] }: Props) {
             )
           },
           h4: ({ children }) => (
-            <h4 className="font-serif text-xl text-almanac-earth-700 dark:text-almanac-earth-300 mt-5 mb-2">
+            <h4 className="font-serif text-xl text-almanac-earth-700 dark:text-foreground mt-5 mb-2">
               {children}
             </h4>
           ),
@@ -175,7 +175,7 @@ export function MarkdownRenderer({ content, entities = [] }: Props) {
             // Inline code
             return (
               <code
-                className="bg-almanac-cream-200 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm font-mono text-almanac-sage-700 dark:text-almanac-sage-400"
+                className="bg-almanac-cream-200 dark:bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-almanac-sage-700 dark:text-primary"
                 {...props}
               >
                 {children}
@@ -184,7 +184,7 @@ export function MarkdownRenderer({ content, entities = [] }: Props) {
           },
           // Blockquotes
           blockquote: ({ children }) => (
-            <blockquote className="border-l-4 border-almanac-sage-400 dark:border-almanac-sage-600 pl-4 my-6 italic bg-almanac-cream-50 dark:bg-gray-900/50 py-2 rounded-r">
+            <blockquote className="border-l-4 border-almanac-sage-400 dark:border-primary/50 pl-4 my-6 italic bg-almanac-cream-50 dark:bg-muted/50 py-2 rounded-r">
               {children}
             </blockquote>
           ),
@@ -199,10 +199,10 @@ export function MarkdownRenderer({ content, entities = [] }: Props) {
             </div>
           ),
           thead: ({ children }) => (
-            <thead className="bg-almanac-cream-100 dark:bg-gray-900">{children}</thead>
+            <thead className="bg-almanac-cream-100 dark:bg-muted">{children}</thead>
           ),
           th: ({ children }) => (
-            <th className="px-4 py-3 text-left text-sm font-semibold text-almanac-earth-700 dark:text-almanac-earth-300">
+            <th className="px-4 py-3 text-left text-sm font-semibold text-almanac-earth-700 dark:text-foreground">
               {children}
             </th>
           ),
@@ -217,13 +217,13 @@ export function MarkdownRenderer({ content, entities = [] }: Props) {
           ),
           // Strong/bold
           strong: ({ children }) => (
-            <strong className="font-semibold text-almanac-earth-700 dark:text-almanac-earth-300">
+            <strong className="font-semibold text-almanac-earth-700 dark:text-foreground">
               {children}
             </strong>
           ),
           // Emphasis/italic
           em: ({ children }) => (
-            <em className="italic text-almanac-earth-600 dark:text-almanac-earth-400">
+            <em className="italic text-almanac-earth-600 dark:text-muted-foreground">
               {children}
             </em>
           ),

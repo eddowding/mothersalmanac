@@ -100,7 +100,7 @@ export function PageFooter({ viewCount, generatedAt, confidence, slug }: Props) 
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs px-2 py-1 rounded bg-almanac-cream-100 dark:bg-gray-800 text-foreground">
+              <span className="text-xs px-2 py-1 rounded bg-almanac-cream-100 dark:bg-muted text-foreground">
                 {(confidence * 100).toFixed(0)}% confidence
               </span>
             </div>

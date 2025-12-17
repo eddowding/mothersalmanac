@@ -157,7 +157,7 @@ export function SmartLink({
           <Card className={cn(
             'p-4 shadow-xl border-2',
             linkStyles.previewBorder,
-            'bg-white dark:bg-gray-900'
+            'bg-white dark:bg-card'
           )}>
             {isLoading ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -167,7 +167,7 @@ export function SmartLink({
             ) : preview ? (
               <div className="space-y-3">
                 <div className="flex items-start justify-between gap-2">
-                  <h4 className="font-semibold text-sm text-almanac-earth-700 dark:text-almanac-earth-300">
+                  <h4 className="font-semibold text-sm text-almanac-earth-700 dark:text-foreground">
                     {preview.title}
                   </h4>
                   <Badge
@@ -257,13 +257,13 @@ function getLinkStyles(confidence: 'strong' | 'medium' | 'weak' | 'ghost') {
       link: cn(
         'text-gray-600 dark:text-gray-400',
         'border-b border-dotted border-gray-400 dark:border-gray-600',
-        'hover:bg-gray-50 dark:hover:bg-gray-900',
-        'focus:ring-gray-500',
+        'hover:bg-muted',
+        'focus:ring-muted-foreground',
         'opacity-75'
       ),
-      icon: 'text-gray-500 dark:text-gray-600',
-      badge: 'bg-gray-50 text-gray-600 border-gray-300 dark:bg-gray-900 dark:text-gray-500 dark:border-gray-700',
-      previewBorder: 'border-gray-300 dark:border-gray-700'
+      icon: 'text-muted-foreground',
+      badge: 'bg-muted text-muted-foreground border-border',
+      previewBorder: 'border-border'
     }
   }
 

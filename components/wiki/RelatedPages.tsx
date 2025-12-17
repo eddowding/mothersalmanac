@@ -32,7 +32,7 @@ export async function RelatedPages({ slug, limit = 8, className }: RelatedPagesP
     <Card className={cn('p-4 no-print', className)}>
       <div className="flex items-center gap-2 mb-3">
         <Lightbulb className="h-4 w-4 text-almanac-sage-600 dark:text-almanac-sage-400" aria-hidden="true" />
-        <h3 className="font-semibold text-sm text-almanac-earth-700 dark:text-almanac-earth-300">
+        <h3 className="font-semibold text-sm text-almanac-earth-700 dark:text-foreground">
           You might also like
         </h3>
       </div>

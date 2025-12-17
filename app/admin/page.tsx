@@ -52,18 +52,18 @@ export default async function AdminPage() {
     supabase
       .from('documents')
       .select('id', { count: 'exact', head: true })
-      .in('status', ['pending', 'processing']),
+      .in('processed_status', ['pending', 'processing']),
     supabase
       .from('documents')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'failed'),
+      .eq('processed_status', 'failed'),
     supabase
       .from('documents')
       .select(
         `
         id,
         title,
-        status,
+        processed_status,
         created_at,
         chunk_count,
         file_size,
@@ -212,7 +212,7 @@ export default async function AdminPage() {
                       )}
                     </div>
                   </div>
-                  <StatusBadge status={doc.status} />
+                  <StatusBadge status={(doc as any).processed_status || 'pending'} />
                 </div>
               ))}
             </div>

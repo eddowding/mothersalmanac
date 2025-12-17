@@ -130,7 +130,7 @@ export default async function AdminStubsPage() {
               Medium
             </Badge>
             <Badge variant="outline" className="gap-1">
-              <span className="h-2 w-2 rounded-full bg-gray-400" />
+              <span className="h-2 w-2 rounded-full bg-muted-foreground" />
               Weak
             </Badge>
           </div>

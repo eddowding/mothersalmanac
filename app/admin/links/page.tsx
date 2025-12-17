@@ -240,7 +240,7 @@ export default async function AdminLinksPage() {
                   <p className="text-sm text-muted-foreground">Weak</p>
                 </div>
                 <div className="text-center p-3 border rounded-lg">
-                  <p className="text-2xl font-bold text-gray-600">
+                  <p className="text-2xl font-bold text-muted-foreground">
                     {allCandidates.filter(c => c.confidence === 'ghost').length}
                   </p>
                   <p className="text-sm text-muted-foreground">Ghost</p>

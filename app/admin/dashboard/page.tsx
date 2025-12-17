@@ -15,7 +15,7 @@ export default async function AdminDashboard() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-2">Dashboard</h1>
-        <p className="text-gray-600">System overview and analytics</p>
+        <p className="text-muted-foreground">System overview and analytics</p>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
@@ -114,19 +114,19 @@ async function OverviewStats() {
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Total Page Views</span>
+                <span className="text-sm text-muted-foreground">Total Page Views</span>
                 <span className="font-semibold">{weekStats.pageViews.toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Total Searches</span>
+                <span className="text-sm text-muted-foreground">Total Searches</span>
                 <span className="font-semibold">{weekStats.searches.toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Total Generations</span>
+                <span className="text-sm text-muted-foreground">Total Generations</span>
                 <span className="font-semibold">{weekStats.generations.total.toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Total Cost</span>
+                <span className="text-sm text-muted-foreground">Total Cost</span>
                 <span className="font-semibold">${weekStats.performance.totalCost}</span>
               </div>
             </div>
@@ -319,10 +319,10 @@ async function ContentStats() {
             <div className="space-y-3">
               {topPages.map((page: any, index: number) => (
                 <div key={page.slug} className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-gray-400 w-6">{index + 1}</span>
+                  <span className="text-sm font-semibold text-muted-foreground w-6">{index + 1}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{page.title}</p>
-                    <p className="text-xs text-gray-500">/{page.slug}</p>
+                    <p className="text-xs text-muted-foreground">/{page.slug}</p>
                   </div>
                   <span className="text-sm font-semibold">{page.view_count.toLocaleString()}</span>
                 </div>
@@ -340,7 +340,7 @@ async function ContentStats() {
             <div className="space-y-3">
               {popularSearches.map((search: any, index: number) => (
                 <div key={search.query} className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-gray-400 w-6">{index + 1}</span>
+                  <span className="text-sm font-semibold text-muted-foreground w-6">{index + 1}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{search.query}</p>
                   </div>
@@ -371,7 +371,7 @@ async function SystemHealthCard() {
       <CardContent>
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Overall Status</span>
+            <span className="text-sm text-muted-foreground">Overall Status</span>
             <span
               className={`font-semibold ${
                 health.status === 'healthy' ? 'text-green-600' : 'text-yellow-600'
@@ -381,7 +381,7 @@ async function SystemHealthCard() {
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Database</span>
+            <span className="text-sm text-muted-foreground">Database</span>
             <span
               className={`font-semibold ${
                 health.checks.database?.status === 'healthy' ? 'text-green-600' : 'text-red-600'
@@ -391,7 +391,7 @@ async function SystemHealthCard() {
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Response Time</span>
+            <span className="text-sm text-muted-foreground">Response Time</span>
             <span className="font-semibold">{health.responseTime}ms</span>
           </div>
         </div>
@@ -417,11 +417,11 @@ function StatCard({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-gray-500" />
+        <Icon className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-gray-500 mt-1">{description}</p>
+        <p className="text-xs text-muted-foreground mt-1">{description}</p>
         {trend && (
           <p className="text-xs text-green-600 mt-1 font-medium">{trend}</p>
         )}
@@ -436,11 +436,11 @@ function StatsLoading() {
       {[...Array(4)].map((_, i) => (
         <Card key={i}>
           <CardHeader className="space-y-0 pb-2">
-            <div className="h-4 bg-gray-200 rounded animate-pulse" />
+            <div className="h-4 bg-muted rounded animate-pulse" />
           </CardHeader>
           <CardContent>
-            <div className="h-8 bg-gray-200 rounded animate-pulse mb-2" />
-            <div className="h-3 bg-gray-200 rounded animate-pulse w-2/3" />
+            <div className="h-8 bg-muted rounded animate-pulse mb-2" />
+            <div className="h-3 bg-muted rounded animate-pulse w-2/3" />
           </CardContent>
         </Card>
       ))}

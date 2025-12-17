@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X, BookOpen, User, Settings, LogOut, Shield } from "lucide-react";
+import { Menu, X, BookOpen, User, Settings, LogOut, Shield, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -31,6 +32,12 @@ export function WikiNav() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -127,6 +134,23 @@ export function WikiNav() {
 
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center gap-2">
+              {/* Theme Toggle */}
+              {mounted && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  className="h-9 w-9"
+                  title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                >
+                  {theme === "dark" ? (
+                    <Sun className="h-4 w-4" />
+                  ) : (
+                    <Moon className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+
               {isAdmin && (
                 <Button
                   variant="ghost"
@@ -267,6 +291,25 @@ export function WikiNav() {
                 >
                   Admin
                 </Link>
+              )}
+              {/* Theme Toggle - Mobile */}
+              {mounted && (
+                <button
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  className="flex items-center w-full px-4 py-2 hover:bg-accent rounded-md transition-colors"
+                >
+                  {theme === "dark" ? (
+                    <>
+                      <Sun className="h-4 w-4 mr-2" />
+                      Switch to Light Mode
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="h-4 w-4 mr-2" />
+                      Switch to Dark Mode
+                    </>
+                  )}
+                </button>
               )}
               <div className="border-t border-border my-2" />
               {isLoggedIn ? (

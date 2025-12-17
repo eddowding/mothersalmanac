@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Filter, FileText, Database, Clock, AlertCircle } from 'lucide-react'
+import { Search, Filter, FileText, Database, Clock, AlertCircle, Play } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,6 +15,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { DocumentUploadZone } from '@/components/admin/DocumentUploadZone'
 import { DocumentCard } from '@/components/admin/DocumentCard'
+import { toast } from 'sonner'
 import type { Document, DocumentStatus } from '@/types/wiki'
 
 interface DocumentStats {
@@ -33,6 +34,7 @@ export default function AdminDocumentsPage() {
     failed: 0,
   })
   const [isLoading, setIsLoading] = useState(true)
+  const [isProcessingAll, setIsProcessingAll] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<DocumentStatus | 'all'>('all')
   const [currentPage, setCurrentPage] = useState(1)
@@ -77,18 +79,77 @@ export default function AdminDocumentsPage() {
     )
   }
 
+  async function processAllPending() {
+    const pendingDocs = documents.filter(doc => doc.processed_status === 'pending')
+    if (pendingDocs.length === 0) {
+      toast.info('No pending documents to process')
+      return
+    }
+
+    setIsProcessingAll(true)
+    let successCount = 0
+    let failCount = 0
+
+    for (const doc of pendingDocs) {
+      try {
+        const response = await fetch('/api/admin/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ documentId: doc.id }),
+        })
+
+        if (response.ok) {
+          successCount++
+          setDocuments((prev) =>
+            prev.map((d) =>
+              d.id === doc.id ? { ...d, processed_status: 'processing' as DocumentStatus } : d
+            )
+          )
+        } else {
+          failCount++
+        }
+      } catch {
+        failCount++
+      }
+    }
+
+    setIsProcessingAll(false)
+
+    if (successCount > 0) {
+      toast.success(`Started processing ${successCount} document(s)`)
+    }
+    if (failCount > 0) {
+      toast.error(`Failed to start ${failCount} document(s)`)
+    }
+
+    // Refresh after a delay to show updated statuses
+    setTimeout(fetchDocuments, 3000)
+  }
+
   const filteredDocuments = documents
+  const pendingCount = documents.filter(doc => doc.processed_status === 'pending').length
 
   const totalPages = Math.ceil(stats.total / itemsPerPage)
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Document Management</h1>
-        <p className="text-gray-500 mt-1">
-          Upload and manage documents for the knowledge base
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Document Management</h1>
+          <p className="text-gray-500 mt-1">
+            Upload and manage documents for the knowledge base
+          </p>
+        </div>
+        {pendingCount > 0 && (
+          <Button
+            onClick={processAllPending}
+            disabled={isProcessingAll}
+          >
+            <Play className="mr-2 h-4 w-4" />
+            {isProcessingAll ? 'Processing...' : `Process ${pendingCount} Pending`}
+          </Button>
+        )}
       </div>
 
       {/* Upload Zone - Embedded directly on page */}

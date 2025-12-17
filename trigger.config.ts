@@ -1,10 +1,12 @@
 import { defineConfig } from "@trigger.dev/sdk/v3";
 
 export default defineConfig({
-  project: "mothersalmanac",
+  project: "mothersalmanac", // Will be set during init
   runtime: "node",
   logLevel: "log",
   maxDuration: 300, // 5 minutes max for document processing
+  // Self-hosted Trigger.dev instance
+  triggerUrl: "https://trigger.roundbear.org",
   retries: {
     enabledInDev: true,
     default: {

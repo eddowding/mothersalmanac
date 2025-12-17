@@ -15,7 +15,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { validateFile } from '@/lib/supabase/storage-validation'
+import { createClient } from '@/lib/supabase/client'
 import type { SourceType } from '@/types/wiki'
+
+const DOCUMENTS_BUCKET = 'documents'
 
 interface FileWithMetadata {
   file: File
@@ -107,28 +110,62 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
     setUploadProgress(0)
 
     try {
+      const supabase = createClient()
+
+      // Get current user for file path
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        toast.error('You must be logged in to upload files')
+        setIsUploading(false)
+        return
+      }
+
       const totalFiles = files.length
       let successCount = 0
 
       for (let i = 0; i < files.length; i++) {
         const fileData = files[i]
 
-        // Create FormData for upload
-        const formData = new FormData()
-        formData.append('file', fileData.file)
-        formData.append('title', fileData.title)
-        formData.append('author', fileData.author)
-        formData.append('sourceType', fileData.sourceType)
-
         try {
-          const response = await fetch('/api/admin/documents/upload', {
+          // Step 1: Upload file directly to Supabase Storage (bypasses Vercel size limits)
+          const timestamp = Date.now()
+          const sanitizedFilename = fileData.file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
+          const filePath = `${user.id}/${timestamp}-${sanitizedFilename}`
+
+          const { error: uploadError } = await supabase.storage
+            .from(DOCUMENTS_BUCKET)
+            .upload(filePath, fileData.file, {
+              contentType: fileData.file.type,
+              cacheControl: '3600',
+              upsert: false,
+            })
+
+          if (uploadError) {
+            throw new Error(`Storage upload failed: ${uploadError.message}`)
+          }
+
+          // Step 2: Create database record via API
+          const response = await fetch('/api/admin/documents/create', {
             method: 'POST',
-            body: formData,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              title: fileData.title,
+              author: fileData.author,
+              sourceType: fileData.sourceType,
+              filePath: filePath,
+              fileSize: fileData.file.size,
+              originalFilename: fileData.file.name,
+              contentType: fileData.file.type,
+            }),
           })
 
           if (!response.ok) {
             const error = await response.json()
-            throw new Error(error.error || 'Upload failed')
+            // Try to clean up the uploaded file if DB record creation fails
+            await supabase.storage.from(DOCUMENTS_BUCKET).remove([filePath])
+            throw new Error(error.error || 'Failed to create document record')
           }
 
           successCount++

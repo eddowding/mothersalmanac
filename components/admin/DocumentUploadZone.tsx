@@ -168,6 +168,19 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
             throw new Error(error.error || 'Failed to create document record')
           }
 
+          const docData = await response.json()
+
+          // Step 3: Auto-trigger processing
+          try {
+            await fetch('/api/admin/process', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ documentId: docData.documentId }),
+            })
+          } catch (processError) {
+            console.warn('Auto-processing trigger failed, document will remain pending:', processError)
+          }
+
           successCount++
           setUploadProgress(((i + 1) / totalFiles) * 100)
         } catch (error) {

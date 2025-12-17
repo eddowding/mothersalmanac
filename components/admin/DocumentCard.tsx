@@ -91,18 +91,33 @@ export function DocumentCard({
   async function handleReprocess() {
     setIsReprocessing(true)
     try {
-      const response = await fetch(
+      // First reset the document status
+      const resetResponse = await fetch(
         `/api/admin/documents/${document.id}/reprocess`,
         {
           method: 'POST',
         }
       )
 
-      if (!response.ok) {
-        throw new Error('Reprocessing failed')
+      if (!resetResponse.ok) {
+        throw new Error('Failed to reset document status')
       }
 
-      toast.success('Document queued for reprocessing')
+      // Then trigger actual processing
+      const processResponse = await fetch('/api/admin/process', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ documentId: document.id }),
+      })
+
+      if (!processResponse.ok) {
+        const error = await processResponse.json()
+        throw new Error(error.error || 'Processing failed')
+      }
+
+      toast.success('Document processing started')
       onReprocess(document.id)
     } catch (error) {
       toast.error(

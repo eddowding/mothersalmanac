@@ -7,16 +7,18 @@
 
 /**
  * Check if a file type is allowed
- * Allowed types: PDF, TXT, DOCX
+ * Allowed types: PDF, TXT, DOCX, EPUB, MD
  */
 export function isAllowedFileType(file: File): boolean {
   const allowedTypes = [
     'application/pdf',
     'text/plain',
+    'text/markdown',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/epub+zip',
   ]
 
-  const allowedExtensions = ['.pdf', '.txt', '.docx']
+  const allowedExtensions = ['.pdf', '.txt', '.docx', '.epub', '.md']
 
   return (
     allowedTypes.includes(file.type) ||
@@ -39,7 +41,7 @@ export function isWithinSizeLimit(file: File): boolean {
  */
 export function validateFile(file: File): string | null {
   if (!isAllowedFileType(file)) {
-    return 'Invalid file type. Only PDF, TXT, and DOCX files are allowed.'
+    return 'Invalid file type. Only PDF, TXT, DOCX, EPUB, and MD files are allowed.'
   }
 
   if (!isWithinSizeLimit(file)) {

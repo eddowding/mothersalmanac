@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Upload, Search, Filter, FileText, Database, Clock, AlertCircle } from 'lucide-react'
+import { Search, Filter, FileText, Database, Clock, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,9 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { DocumentUploadModal } from '@/components/admin/DocumentUploadModal'
+import { DocumentUploadZone } from '@/components/admin/DocumentUploadZone'
 import { DocumentCard } from '@/components/admin/DocumentCard'
 import type { Document, DocumentStatus } from '@/types/wiki'
 
@@ -34,7 +33,6 @@ export default function AdminDocumentsPage() {
     failed: 0,
   })
   const [isLoading, setIsLoading] = useState(true)
-  const [uploadModalOpen, setUploadModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<DocumentStatus | 'all'>('all')
   const [currentPage, setCurrentPage] = useState(1)
@@ -66,10 +64,6 @@ export default function AdminDocumentsPage() {
     fetchDocuments()
   }, [fetchDocuments])
 
-  function handleUploadComplete() {
-    fetchDocuments()
-  }
-
   function handleDelete(id: string) {
     setDocuments((prev) => prev.filter((doc) => doc.id !== id))
     setStats((prev) => ({ ...prev, total: prev.total - 1 }))
@@ -90,18 +84,15 @@ export default function AdminDocumentsPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Document Management</h1>
-          <p className="text-gray-500 mt-1">
-            Upload and manage documents for the knowledge base
-          </p>
-        </div>
-        <Button onClick={() => setUploadModalOpen(true)}>
-          <Upload className="mr-2 h-4 w-4" />
-          Upload Documents
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Document Management</h1>
+        <p className="text-gray-500 mt-1">
+          Upload and manage documents for the knowledge base
+        </p>
       </div>
+
+      {/* Upload Zone - Embedded directly on page */}
+      <DocumentUploadZone onUploadComplete={fetchDocuments} />
 
       {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -220,10 +211,9 @@ export default function AdminDocumentsPage() {
                 : 'Get started by uploading your first document'}
             </p>
             {!searchQuery && statusFilter === 'all' && (
-              <Button onClick={() => setUploadModalOpen(true)}>
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Documents
-              </Button>
+              <p className="text-sm text-gray-500">
+                Use the upload zone above to add your first document
+              </p>
             )}
           </CardContent>
         </Card>
@@ -279,12 +269,6 @@ export default function AdminDocumentsPage() {
         </>
       )}
 
-      {/* Upload Modal */}
-      <DocumentUploadModal
-        open={uploadModalOpen}
-        onOpenChange={setUploadModalOpen}
-        onUploadComplete={handleUploadComplete}
-      />
     </div>
   )
 }

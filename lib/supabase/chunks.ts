@@ -184,7 +184,7 @@ export async function updateDocumentStatus(
   const supabase = createAdminClient();
 
   const updateData: any = {
-    status,
+    processed_status: status,
     ...metadata,
   };
 

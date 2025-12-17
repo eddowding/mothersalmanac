@@ -39,8 +39,9 @@ export interface GeminiGenerationResult {
   model: string;
 }
 
-// Default model configuration - Gemini 2.0 Flash is 30x cheaper than Sonnet
-const DEFAULT_MODEL = 'gemini-2.0-flash-exp';
+// Model configuration - Gemini 3 Flash Preview with 2.5 fallback
+const PRIMARY_MODEL = 'gemini-3-flash-preview';  // Latest (Dec 17, 2025)
+const FALLBACK_MODEL = 'gemini-2.5-flash';       // Stable fallback
 const DEFAULT_MAX_TOKENS = 4096;
 const DEFAULT_TEMPERATURE = 0.7;
 
@@ -98,7 +99,7 @@ export async function generateWithGemini(
   const {
     maxTokens = DEFAULT_MAX_TOKENS,
     temperature = DEFAULT_TEMPERATURE,
-    model = DEFAULT_MODEL,
+    model = PRIMARY_MODEL,
     topP,
     topK,
   } = options;
@@ -136,6 +137,7 @@ export async function generateWithGemini(
 
 /**
  * Generate text with full response metadata
+ * Tries Gemini 3 Flash first, falls back to 2.5 Flash if it fails
  *
  * @param messages - Conversation history
  * @param systemPrompt - System instructions
@@ -156,51 +158,71 @@ export async function generateWithMetadata(
   const {
     maxTokens = DEFAULT_MAX_TOKENS,
     temperature = DEFAULT_TEMPERATURE,
-    model = DEFAULT_MODEL,
+    model,  // If explicitly set, use that model only
     topP,
     topK,
   } = options;
 
-  try {
-    const genModel = client.getGenerativeModel({
-      model,
-      systemInstruction: systemPrompt,
-      generationConfig: {
-        maxOutputTokens: maxTokens,
-        temperature,
-        ...(topP !== undefined && { topP }),
-        ...(topK !== undefined && { topK }),
-      },
-      safetySettings: [
-        { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-      ],
-    });
+  // Models to try in order (primary first, then fallback)
+  const modelsToTry = model ? [model] : [PRIMARY_MODEL, FALLBACK_MODEL];
 
-    const history = convertMessages(messages.slice(0, -1));
-    const lastMessage = messages[messages.length - 1];
+  for (const currentModel of modelsToTry) {
+    try {
+      console.log(`[Gemini] Trying model: ${currentModel}`);
 
-    const chat = genModel.startChat({ history });
-    const result = await chat.sendMessage(lastMessage.content);
-    const response = result.response;
+      const genModel = client.getGenerativeModel({
+        model: currentModel,
+        systemInstruction: systemPrompt,
+        generationConfig: {
+          maxOutputTokens: maxTokens,
+          temperature,
+          ...(topP !== undefined && { topP }),
+          ...(topK !== undefined && { topK }),
+        },
+        safetySettings: [
+          { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        ],
+      });
 
-    // Extract usage metadata
-    const usageMetadata = response.usageMetadata;
+      const history = convertMessages(messages.slice(0, -1));
+      const lastMessage = messages[messages.length - 1];
 
-    return {
-      content: response.text(),
-      stopReason: response.candidates?.[0]?.finishReason || null,
-      usage: {
-        inputTokens: usageMetadata?.promptTokenCount || 0,
-        outputTokens: usageMetadata?.candidatesTokenCount || 0,
-      },
-      model,
-    };
-  } catch (error) {
-    throw new Error(`Gemini API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const chat = genModel.startChat({ history });
+      const result = await chat.sendMessage(lastMessage.content);
+      const response = result.response;
+
+      // Extract usage metadata
+      const usageMetadata = response.usageMetadata;
+
+      console.log(`[Gemini] Success with model: ${currentModel}`);
+
+      return {
+        content: response.text(),
+        stopReason: response.candidates?.[0]?.finishReason || null,
+        usage: {
+          inputTokens: usageMetadata?.promptTokenCount || 0,
+          outputTokens: usageMetadata?.candidatesTokenCount || 0,
+        },
+        model: currentModel,
+      };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.warn(`[Gemini] Model ${currentModel} failed: ${errorMsg}`);
+
+      // If this is the last model to try, throw the error
+      if (currentModel === modelsToTry[modelsToTry.length - 1]) {
+        throw new Error(`Gemini API error (tried ${modelsToTry.join(', ')}): ${errorMsg}`);
+      }
+      // Otherwise, continue to next model
+      console.log(`[Gemini] Falling back to next model...`);
+    }
   }
+
+  // This should never be reached, but TypeScript needs it
+  throw new Error('No Gemini models available');
 }
 
 /**
@@ -249,43 +271,62 @@ export async function generateWithStreaming(
   const {
     maxTokens = DEFAULT_MAX_TOKENS,
     temperature = DEFAULT_TEMPERATURE,
-    model = DEFAULT_MODEL,
+    model,
   } = options;
 
-  try {
-    const genModel = client.getGenerativeModel({
-      model,
-      systemInstruction: systemPrompt,
-      generationConfig: {
-        maxOutputTokens: maxTokens,
-        temperature,
-      },
-      safetySettings: [
-        { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-      ],
-    });
+  // Models to try in order (primary first, then fallback)
+  const modelsToTry = model ? [model] : [PRIMARY_MODEL, FALLBACK_MODEL];
 
-    const history = convertMessages(messages.slice(0, -1));
-    const lastMessage = messages[messages.length - 1];
+  for (const currentModel of modelsToTry) {
+    try {
+      console.log(`[Gemini Streaming] Trying model: ${currentModel}`);
 
-    const chat = genModel.startChat({ history });
-    const result = await chat.sendMessageStream(lastMessage.content);
+      const genModel = client.getGenerativeModel({
+        model: currentModel,
+        systemInstruction: systemPrompt,
+        generationConfig: {
+          maxOutputTokens: maxTokens,
+          temperature,
+        },
+        safetySettings: [
+          { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        ],
+      });
 
-    let fullText = '';
+      const history = convertMessages(messages.slice(0, -1));
+      const lastMessage = messages[messages.length - 1];
 
-    for await (const chunk of result.stream) {
-      const text = chunk.text();
-      fullText += text;
-      onChunk(text);
+      const chat = genModel.startChat({ history });
+      const result = await chat.sendMessageStream(lastMessage.content);
+
+      let fullText = '';
+
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        fullText += text;
+        onChunk(text);
+      }
+
+      console.log(`[Gemini Streaming] Success with model: ${currentModel}`);
+      return fullText;
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.warn(`[Gemini Streaming] Model ${currentModel} failed: ${errorMsg}`);
+
+      // If this is the last model to try, throw the error
+      if (currentModel === modelsToTry[modelsToTry.length - 1]) {
+        throw new Error(`Gemini streaming error (tried ${modelsToTry.join(', ')}): ${errorMsg}`);
+      }
+      // Otherwise, continue to next model
+      console.log(`[Gemini Streaming] Falling back to next model...`);
     }
-
-    return fullText;
-  } catch (error) {
-    throw new Error(`Gemini streaming error: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+
+  // This should never be reached, but TypeScript needs it
+  throw new Error('No Gemini models available for streaming');
 }
 
 /**
@@ -300,13 +341,21 @@ export async function generateWithStreaming(
 export function estimateGenerationCost(
   inputTokens: number,
   outputTokens: number,
-  model: string = DEFAULT_MODEL
+  model: string = PRIMARY_MODEL
 ): number {
-  // Gemini 2.0 Flash pricing (as of Dec 2024)
+  // Gemini pricing (as of Dec 2024)
   const pricing: Record<string, { inputCostPer1M: number; outputCostPer1M: number }> = {
+    'gemini-3-flash-preview': {
+      inputCostPer1M: 0.10,   // Estimated - adjust when pricing announced
+      outputCostPer1M: 0.40,
+    },
+    'gemini-2.5-flash': {
+      inputCostPer1M: 0.10,
+      outputCostPer1M: 0.40,
+    },
     'gemini-2.0-flash-exp': {
-      inputCostPer1M: 0.10,   // $0.10 per 1M input tokens
-      outputCostPer1M: 0.40,  // $0.40 per 1M output tokens
+      inputCostPer1M: 0.10,
+      outputCostPer1M: 0.40,
     },
     'gemini-2.0-flash-lite': {
       inputCostPer1M: 0.075,
@@ -322,7 +371,7 @@ export function estimateGenerationCost(
     },
   };
 
-  const modelPricing = pricing[model] || pricing['gemini-2.0-flash-exp'];
+  const modelPricing = pricing[model] || pricing['gemini-3-flash-preview'];
 
   const inputCost = (inputTokens / 1_000_000) * modelPricing.inputCostPer1M;
   const outputCost = (outputTokens / 1_000_000) * modelPricing.outputCostPer1M;
@@ -342,7 +391,9 @@ export function isConfigured(): boolean {
  */
 export function getAvailableModels() {
   return {
-    flash: 'gemini-2.0-flash-exp',
+    flash3Preview: PRIMARY_MODEL,
+    flash25: FALLBACK_MODEL,
+    flash20: 'gemini-2.0-flash-exp',
     flashLite: 'gemini-2.0-flash-lite',
     flash15: 'gemini-1.5-flash',
     pro: 'gemini-1.5-pro',

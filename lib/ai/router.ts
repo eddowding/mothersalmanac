@@ -65,9 +65,9 @@ const MODELS = {
   sonnet: 'claude-sonnet-4-5-20250929',
   haiku: 'claude-3-5-haiku-20241022',
 
-  // Gemini models
-  geminiFlash: 'gemini-2.0-flash-exp',
-  geminiFlashLite: 'gemini-2.0-flash-lite',
+  // Gemini models (3 Flash Preview - Pro-level intelligence at Flash speed)
+  geminiFlash: 'gemini-3-flash-preview',
+  geminiFlashLite: 'gemini-2.5-flash-lite',
 };
 
 // Confidence threshold below which we use higher-quality model

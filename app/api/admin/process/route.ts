@@ -2,30 +2,24 @@
  * Admin API Route: Document Processing
  *
  * POST /api/admin/process
- * - Trigger processing for a specific document
+ * - Trigger processing for a specific document via Trigger.dev
  * - Body: { documentId: string }
  *
  * GET /api/admin/process?documentId=xxx
  * - Get processing status for a document
- *
- * POST /api/admin/process/batch
- * - Process multiple documents
- * - Body: { documentIds: string[] }
- *
- * POST /api/admin/process/pending
- * - Process all pending documents
- * - Body: { limit?: number }
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { tasks } from '@trigger.dev/sdk/v3';
 import {
   processDocument,
-  processDocumentsBatch,
   getProcessingStatus,
   canProcessDocument,
-  processPendingDocuments,
 } from '@/lib/rag/processor';
+import type { processDocumentTask } from '@/trigger/process-document';
+
+const TRIGGER_ENABLED = !!process.env.TRIGGER_SECRET_KEY;
 
 /**
  * POST: Trigger document processing
@@ -76,17 +70,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Start processing in background (don't await)
-    // In production, use a job queue like Inngest or BullMQ
-    processDocument(documentId).catch(error => {
-      console.error('[API] Background processing failed:', error);
-    });
+    if (TRIGGER_ENABLED) {
+      // Use Trigger.dev for background processing (recommended)
+      const handle = await tasks.trigger<typeof processDocumentTask>(
+        'process-document',
+        { documentId }
+      );
 
-    return NextResponse.json({
-      success: true,
-      message: 'Processing started',
-      documentId,
-    });
+      console.log(`[API] Triggered processing task: ${handle.id}`);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Processing queued via Trigger.dev',
+        documentId,
+        taskId: handle.id,
+      });
+    } else {
+      // Fallback: synchronous processing (will timeout on large files)
+      console.log(`[API] Processing synchronously (Trigger.dev not configured)`);
+
+      const result = await processDocument(documentId);
+
+      if (result.status === 'failure') {
+        return NextResponse.json(
+          { error: result.error || 'Processing failed' },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Processing completed',
+        documentId,
+        chunksCreated: result.chunksCreated,
+        processingTime: result.processingTime,
+      });
+    }
 
   } catch (error) {
     console.error('[API] Process document error:', error);

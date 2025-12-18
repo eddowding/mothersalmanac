@@ -6,7 +6,7 @@
  */
 
 import { createClient } from '../supabase/server'
-import { generateEmbedding as generateVoyageEmbedding } from './embeddings'
+import { generateEmbedding as generateOpenAIEmbedding } from './embeddings'
 
 /**
  * Metadata stored with each chunk
@@ -51,13 +51,13 @@ export interface HybridSearchResult extends SearchResult {
 }
 
 /**
- * Generate embeddings for a query using Voyage AI (via Anthropic)
+ * Generate embeddings for a query using OpenAI embeddings
  *
  * @param query - Text to generate embeddings for
  * @returns Embedding vector
  */
 async function generateEmbedding(query: string): Promise<number[]> {
-  const result = await generateVoyageEmbedding(query)
+  const result = await generateOpenAIEmbedding(query)
   return result.embedding
 }
 
@@ -91,7 +91,7 @@ export async function vectorSearch(
   // Call Supabase RPC function for vector search
   const supabase = await createClient()
   const { data, error } = await (supabase as any).rpc('search_chunks', {
-    query_embedding: queryEmbedding,
+    query_embedding: JSON.stringify(queryEmbedding),
     match_threshold: threshold,
     match_count: limit,
   })
@@ -103,14 +103,20 @@ export async function vectorSearch(
 
   // Map results to SearchResult interface
   return (data || []).map((row: any) => ({
-    chunk_id: row.id,
+    // Support multiple RPC return shapes (some functions return `id`, others `chunk_id`)
+    chunk_id: row.id ?? row.chunk_id,
     document_id: row.document_id,
     content: row.content,
-    metadata: row.metadata || {},
+    // Some schemas return `metadata` JSONB; older ones return separate fields
+    metadata: row.metadata ?? {
+      ...(row.section_title ? { section_title: row.section_title } : {}),
+      ...(row.page_number !== null && row.page_number !== undefined ? { page_number: row.page_number } : {}),
+      ...(row.chunk_index !== null && row.chunk_index !== undefined ? { chunk_index: row.chunk_index } : {}),
+    },
     similarity: row.similarity,
-    document_title: undefined,
-    document_author: undefined,
-    source_type: undefined,
+    document_title: row.document_title ?? row.document_file_name ?? row.title,
+    document_author: row.document_author ?? row.author,
+    source_type: row.source_type,
   }))
 }
 
@@ -144,7 +150,7 @@ export async function hybridSearch(
   const supabase = await createClient()
   const { data, error } = await (supabase as any).rpc('hybrid_search', {
     query_text: query,
-    query_embedding: queryEmbedding,
+    query_embedding: JSON.stringify(queryEmbedding),
     match_threshold: threshold,
     match_count: limit,
   })

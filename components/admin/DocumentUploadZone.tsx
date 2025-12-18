@@ -108,22 +108,27 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
 
     setIsUploading(true)
     setUploadProgress(0)
+    console.log('[Upload] Starting upload process...')
 
     try {
       // Create Supabase client with validation
       let supabase
       try {
+        console.log('[Upload] Creating Supabase client...')
         supabase = createClient()
+        console.log('[Upload] Supabase client created successfully')
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to initialize Supabase client'
-        console.error('Supabase client creation failed:', error)
+        console.error('[Upload] Supabase client creation failed:', error)
         toast.error(`Configuration error: ${message}`)
         setIsUploading(false)
         return
       }
 
       // Get current user for file path
+      console.log('[Upload] Getting current user...')
       const { data: { user }, error: authError } = await supabase.auth.getUser()
+      console.log('[Upload] getUser completed:', { user: user?.id, error: authError })
       if (authError) {
         console.error('Auth error:', authError)
         toast.error(`Authentication error: ${authError.message}`)
@@ -148,6 +153,7 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
           const sanitizedFilename = fileData.file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
           const filePath = `${user.id}/${timestamp}-${sanitizedFilename}`
 
+          console.log('[Upload] Starting storage upload:', { filePath, size: fileData.file.size, type: fileData.file.type })
           const { error: uploadError } = await supabase.storage
             .from(DOCUMENTS_BUCKET)
             .upload(filePath, fileData.file, {
@@ -155,6 +161,7 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
               cacheControl: '3600',
               upsert: false,
             })
+          console.log('[Upload] Storage upload completed:', { error: uploadError })
 
           if (uploadError) {
             throw new Error(`Storage upload failed: ${uploadError.message}`)

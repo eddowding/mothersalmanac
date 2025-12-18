@@ -1,15 +1,9 @@
--- Fix search_chunks to use SECURITY DEFINER
+-- Fix search_chunks to use SECURITY DEFINER and correct column names
 -- This allows the function to bypass RLS and query all document chunks
--- Required because wiki generation needs access to all knowledge base content,
--- not just the current user's documents
+-- Required because wiki generation needs access to all knowledge base content
 
--- Drop existing search_chunks functions and recreate with SECURITY DEFINER
 DROP FUNCTION IF EXISTS public.search_chunks(vector(1536), float, int, uuid);
-DROP FUNCTION IF EXISTS public.search_chunks(vector, float, int, uuid);
-DROP FUNCTION IF EXISTS public.search_chunks(vector(1536), float, int);
-DROP FUNCTION IF EXISTS public.search_chunks(vector, float, int);
 
--- Recreate with SECURITY DEFINER to bypass RLS
 CREATE OR REPLACE FUNCTION public.search_chunks(
   query_embedding vector(1536),
   match_threshold float DEFAULT 0.7,
@@ -37,22 +31,21 @@ BEGIN
     dc.id,
     dc.document_id,
     dc.content,
-    dc.section_title,
-    dc.page_number,
-    1 - (dc.embedding <=> query_embedding) AS similarity,
+    (dc.metadata->>'section_title')::text AS section_title,
+    (dc.metadata->>'page_number')::integer AS page_number,
+    (1 - (dc.embedding <=> query_embedding))::float AS similarity,
     d.title AS document_title,
-    d.file_name AS document_file_name
+    d.title AS document_file_name
   FROM public.document_chunks dc
   JOIN public.documents d ON dc.document_id = d.id
   WHERE
     (filter_document_id IS NULL OR dc.document_id = filter_document_id)
-    AND d.status = 'completed'
+    AND d.processed_status = 'completed'
     AND (1 - (dc.embedding <=> query_embedding)) > match_threshold
   ORDER BY dc.embedding <=> query_embedding
   LIMIT match_count;
 END;
 $$;
 
--- Grant execute to authenticated and anonymous users
 GRANT EXECUTE ON FUNCTION public.search_chunks(vector(1536), float, int, uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.search_chunks(vector(1536), float, int, uuid) TO anon;

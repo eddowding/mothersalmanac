@@ -16,8 +16,13 @@ import {
   boostOfficialSources,
   analyzeOfficialStats,
   enforceDiversity,
+  shouldUseWebAugmentation,
   type BoostedSearchResult,
 } from '@/lib/rag/prioritization'
+import {
+  fetchAuthoritativeContent,
+  buildAugmentedContext,
+} from '@/lib/rag/web-augmentation'
 import { buildWikiPrompt, buildHybridWikiPrompt } from './prompts'
 import { extractEntities, type EntityLink } from './entities'
 import { extractTitle, validateQuery, queryToSlug } from './utils'
@@ -347,6 +352,8 @@ export async function generateWikiPage(
     let systemPrompt = ''
     let usedAIFallback = quality.mode === 'pure_ai'
     let generationMode = quality.mode
+    let webAugmentationUsed = false
+    let webSourceCount = 0
 
     if (quality.mode === 'pure_ai') {
       // Fallback: Use Claude's general knowledge when no sources found
@@ -410,7 +417,32 @@ Use your general knowledge. Include: definition, quick facts table, key informat
           systemPrompt = buildWikiPrompt(normalizedQuery, context)
         } else {
           // Hybrid mode: use context but allow AI supplementation
-          systemPrompt = buildHybridWikiPrompt(normalizedQuery, context)
+          // Step 5a: Check if web augmentation should be used
+          let finalContext = context
+          if (shouldUseWebAugmentation(diversifiedResults, normalizedQuery)) {
+            console.log('[Wiki Generator] Step 5a: Fetching authoritative web sources...')
+            try {
+              const webResult = await fetchAuthoritativeContent(normalizedQuery, ['nhs.uk', 'cdc.gov', 'who.int'])
+              if (webResult.successCount > 0) {
+                console.log(`[Wiki Generator] Web augmentation: ${webResult.successCount} sources in ${webResult.fetchTimeMs}ms`)
+                finalContext = buildAugmentedContext(context, webResult.context)
+                webAugmentationUsed = true
+                webSourceCount = webResult.successCount
+                // Add web sources to sources list
+                for (const src of webResult.sources) {
+                  if (src.success) {
+                    sources.push(`${src.domain}: ${src.title}`)
+                  }
+                }
+              } else {
+                console.log('[Wiki Generator] Web augmentation: no sources retrieved')
+              }
+            } catch (webError) {
+              console.warn('[Wiki Generator] Web augmentation failed:', webError)
+              // Continue without web augmentation
+            }
+          }
+          systemPrompt = buildHybridWikiPrompt(normalizedQuery, finalContext)
         }
       }
     }
@@ -558,6 +590,9 @@ Use your general knowledge. Include: definition, quick facts table, key informat
           official_source_count: officialStats.official_count,
           official_source_ratio: officialStats.official_ratio,
           boosted_count: officialStats.boosted_count,
+          // Web augmentation tracking
+          web_augmentation_used: webAugmentationUsed,
+          web_source_count: webSourceCount,
         },
         ai_fallback: generationMode === 'pure_ai',
         generation_source: generationMode === 'pure_ai' ? 'ai_knowledge' : (generationMode === 'hybrid' ? 'hybrid' : 'rag_documents'),

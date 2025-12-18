@@ -110,10 +110,26 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
     setUploadProgress(0)
 
     try {
-      const supabase = createClient()
+      // Create Supabase client with validation
+      let supabase
+      try {
+        supabase = createClient()
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to initialize Supabase client'
+        console.error('Supabase client creation failed:', error)
+        toast.error(`Configuration error: ${message}`)
+        setIsUploading(false)
+        return
+      }
 
       // Get current user for file path
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError) {
+        console.error('Auth error:', authError)
+        toast.error(`Authentication error: ${authError.message}`)
+        setIsUploading(false)
+        return
+      }
       if (!user) {
         toast.error('You must be logged in to upload files')
         setIsUploading(false)

@@ -10,10 +10,24 @@ import type { Database } from './types'
  * NEVER use the admin client on the client side.
  */
 export function createClient() {
-  return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Supabase configuration error:', {
+      url: supabaseUrl ? 'present' : 'MISSING',
+      anonKey: supabaseAnonKey ? 'present' : 'MISSING',
+      allEnvVars: Object.keys(process.env).filter(k => k.startsWith('NEXT_PUBLIC_')),
+    })
+    throw new Error(
+      'Missing Supabase environment variables. ' +
+      `URL: ${supabaseUrl ? 'OK' : 'MISSING'}, ` +
+      `Key: ${supabaseAnonKey ? 'OK' : 'MISSING'}. ` +
+      'Check that NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set in Vercel.'
+    )
+  }
+
+  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
 }
 
 /**

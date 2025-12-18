@@ -54,13 +54,13 @@ export function WikiGenerating({ topic, className }: WikiGeneratingProps) {
 
       {/* Topic being generated */}
       {topic && (
-        <h2 className="text-2xl font-serif font-semibold text-almanac-earth-800 mb-4 text-center">
+        <h2 className="text-2xl font-serif font-semibold text-almanac-earth-800 dark:text-foreground mb-4 text-center">
           {topic}
         </h2>
       )}
 
       {/* Status message */}
-      <div className="flex items-center gap-2 text-lg text-almanac-earth-600 min-h-[28px]">
+      <div className="flex items-center gap-2 text-lg text-almanac-earth-600 dark:text-muted-foreground min-h-[28px]">
         <span className="transition-opacity duration-300">{currentMessage.text}</span>
         <span className="w-6 text-left">{dots}</span>
       </div>

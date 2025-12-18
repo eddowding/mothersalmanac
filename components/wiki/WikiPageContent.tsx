@@ -93,7 +93,7 @@ export function WikiPageContent({ page }: WikiPageContentProps) {
                   {index > 0 && <span>/</span>}
                   <Link
                     href={crumb.href}
-                    className="hover:text-almanac-sage-700 transition-colors"
+                    className="hover:text-almanac-sage-700 dark:hover:text-almanac-sage-300 transition-colors"
                   >
                     {crumb.label}
                   </Link>
@@ -104,7 +104,7 @@ export function WikiPageContent({ page }: WikiPageContentProps) {
 
           {/* Page Header */}
           <header className="mb-8 space-y-4">
-            <h1 className="font-serif text-4xl md:text-5xl font-bold text-almanac-earth-700">
+            <h1 className="font-serif text-4xl md:text-5xl font-bold text-almanac-earth-700 dark:text-foreground">
               {page.title}
             </h1>
 
@@ -149,7 +149,7 @@ export function WikiPageContent({ page }: WikiPageContentProps) {
           <WikiTableOfContents content={page.content} />
 
           {/* Main Content */}
-          <article className="prose prose-lg max-w-none prose-headings:font-serif prose-headings:text-almanac-earth-700 prose-p:text-foreground prose-strong:text-foreground">
+          <article className="prose prose-lg max-w-none dark:prose-invert prose-headings:font-serif prose-headings:text-almanac-earth-700 dark:prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -186,7 +186,7 @@ export function WikiPageContent({ page }: WikiPageContentProps) {
                     return (
                       <Link
                         href={href}
-                        className="text-almanac-sage-700 underline decoration-almanac-sage-300 decoration-2 underline-offset-2 hover:decoration-almanac-sage-600 hover:text-almanac-sage-800 transition-colors"
+                        className="text-almanac-sage-700 dark:text-almanac-sage-400 underline decoration-almanac-sage-300 dark:decoration-almanac-sage-600 decoration-2 underline-offset-2 hover:decoration-almanac-sage-600 dark:hover:decoration-almanac-sage-500 hover:text-almanac-sage-800 dark:hover:text-almanac-sage-300 transition-colors"
                         {...props}
                       >
                         {children}
@@ -197,7 +197,7 @@ export function WikiPageContent({ page }: WikiPageContentProps) {
                   return (
                     <a
                       href={href}
-                      className="text-almanac-sage-700 no-underline hover:underline"
+                      className="text-almanac-sage-700 dark:text-almanac-sage-400 hover:text-almanac-sage-800 dark:hover:text-almanac-sage-300 no-underline hover:underline"
                       target="_blank"
                       rel="noopener noreferrer"
                       {...props}
@@ -214,9 +214,9 @@ export function WikiPageContent({ page }: WikiPageContentProps) {
 
           {/* Source Attribution */}
           {page.metadata.sources_used && page.metadata.sources_used.length > 0 && (
-            <Card className="mt-12 border-almanac-sage-200 bg-almanac-cream-50">
+            <Card className="mt-12 border-almanac-sage-200 bg-almanac-cream-50 dark:bg-card dark:border-border">
               <CardContent className="pt-6">
-                <h2 className="font-serif text-xl font-semibold text-almanac-earth-700 mb-4">
+                <h2 className="font-serif text-xl font-semibold text-almanac-earth-700 dark:text-foreground mb-4">
                   Sources
                 </h2>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -239,7 +239,7 @@ export function WikiPageContent({ page }: WikiPageContentProps) {
           {page.metadata.entity_links && page.metadata.entity_links.length > 0 && (
             <div className="mt-12 space-y-4">
               <Separator />
-              <h2 className="font-serif text-2xl font-semibold text-almanac-earth-700">
+              <h2 className="font-serif text-2xl font-semibold text-almanac-earth-700 dark:text-foreground">
                 Related Topics
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -251,7 +251,7 @@ export function WikiPageContent({ page }: WikiPageContentProps) {
                   >
                     <Card className="hover:border-almanac-sage-400 transition-colors">
                       <CardContent className="p-4">
-                        <span className="text-sm font-medium group-hover:text-almanac-sage-700 transition-colors">
+                        <span className="text-sm font-medium group-hover:text-almanac-sage-700 dark:group-hover:text-almanac-sage-300 transition-colors">
                           {link.entity}
                         </span>
                       </CardContent>

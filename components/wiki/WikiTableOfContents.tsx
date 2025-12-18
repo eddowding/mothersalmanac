@@ -55,7 +55,7 @@ export function WikiTableOfContents({ content, className }: WikiTableOfContentsP
   return (
     <nav
       className={cn(
-        'mb-8 border border-almanac-sage-200 bg-almanac-cream-50 rounded-lg overflow-hidden',
+        'mb-8 border border-almanac-sage-200 bg-almanac-cream-50 dark:border-border dark:bg-card rounded-lg overflow-hidden',
         // Desktop: float right with max width
         'lg:float-right lg:ml-6 lg:mb-4 lg:max-w-[300px]',
         // Mobile: full width, default collapsed on first load for better UX
@@ -65,15 +65,15 @@ export function WikiTableOfContents({ content, className }: WikiTableOfContentsP
       aria-label="Table of contents"
     >
       {/* Header with toggle */}
-      <div className="flex items-center justify-between px-4 py-3 bg-almanac-sage-50 border-b border-almanac-sage-200">
-        <h2 className="font-serif text-lg font-semibold text-almanac-earth-700">
+      <div className="flex items-center justify-between px-4 py-3 bg-almanac-sage-50 dark:bg-muted border-b border-almanac-sage-200 dark:border-border">
+        <h2 className="font-serif text-lg font-semibold text-almanac-earth-700 dark:text-foreground">
           Contents
         </h2>
         <Button
           variant="ghost"
           size="icon-sm"
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="h-6 w-6 hover:bg-almanac-sage-100"
+          className="h-6 w-6 hover:bg-almanac-sage-100 dark:hover:bg-muted/80"
           aria-label={isCollapsed ? 'Show table of contents' : 'Hide table of contents'}
         >
           {isCollapsed ? (
@@ -101,7 +101,7 @@ export function WikiTableOfContents({ content, className }: WikiTableOfContentsP
                   <a
                     href={`#${section.id}`}
                     className={cn(
-                      'block py-1 text-almanac-sage-700 hover:text-almanac-sage-900',
+                      'block py-1 text-almanac-sage-700 hover:text-almanac-sage-900 dark:text-muted-foreground dark:hover:text-foreground',
                       'hover:underline transition-colors',
                       section.level === 2 && 'font-medium'
                     )}

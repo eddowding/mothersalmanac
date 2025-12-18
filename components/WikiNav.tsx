@@ -120,9 +120,9 @@ export function WikiNav() {
             {/* Logo */}
             <Link
               href="/"
-              className="flex items-center gap-2 font-serif font-semibold text-lg hover:text-almanac-sage-700 transition-colors"
+              className="flex items-center gap-2 font-serif font-semibold text-lg hover:text-almanac-sage-700 dark:hover:text-almanac-sage-300 transition-colors"
             >
-              <BookOpen className="h-6 w-6 text-almanac-sage-600" />
+              <BookOpen className="h-6 w-6 text-almanac-sage-600 dark:text-almanac-sage-400" />
               <span className="hidden sm:inline">Mother&apos;s Almanac</span>
               <span className="sm:hidden">M.A.</span>
             </Link>

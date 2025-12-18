@@ -192,16 +192,16 @@ export function WikiPageStreaming({ slug, initialContent }: WikiPageStreamingPro
         <div className="max-w-4xl mx-auto">
           {/* Status indicator while generating */}
           {status !== "done" && (
-            <div className="mb-6 flex items-center gap-3 p-3 rounded-lg bg-almanac-sage-50 border border-almanac-sage-200 animate-pulse">
-              <Sparkles className="h-5 w-5 text-almanac-sage-600" />
-              <span className="text-sm text-almanac-sage-700">{statusMessage}</span>
+            <div className="mb-6 flex items-center gap-3 p-3 rounded-lg bg-almanac-sage-50 border border-almanac-sage-200 dark:bg-muted dark:border-border animate-pulse">
+              <Sparkles className="h-5 w-5 text-almanac-sage-600 dark:text-primary" />
+              <span className="text-sm text-almanac-sage-700 dark:text-foreground">{statusMessage}</span>
             </div>
           )}
 
           {/* Page Header */}
           {title && (
             <header className="mb-8">
-              <h1 className="font-serif text-4xl md:text-5xl font-bold text-almanac-earth-700">
+              <h1 className="font-serif text-4xl md:text-5xl font-bold text-almanac-earth-700 dark:text-foreground">
                 {title}
               </h1>
             </header>
@@ -214,7 +214,7 @@ export function WikiPageStreaming({ slug, initialContent }: WikiPageStreamingPro
           <article
             ref={contentRef}
             className={cn(
-              "prose prose-lg max-w-none prose-headings:font-serif prose-headings:text-almanac-earth-700 prose-p:text-foreground prose-strong:text-foreground",
+              "prose prose-lg max-w-none dark:prose-invert prose-headings:font-serif prose-headings:text-almanac-earth-700 dark:prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground",
               status !== "done" && "animate-in fade-in duration-300"
             )}
           >
@@ -246,7 +246,7 @@ export function WikiPageStreaming({ slug, initialContent }: WikiPageStreamingPro
                     return (
                       <Link
                         href={href}
-                        className="text-almanac-sage-700 underline decoration-almanac-sage-300 decoration-2 underline-offset-2 hover:decoration-almanac-sage-600 hover:text-almanac-sage-800 transition-colors"
+                        className="text-almanac-sage-700 dark:text-almanac-sage-400 underline decoration-almanac-sage-300 dark:decoration-almanac-sage-600 decoration-2 underline-offset-2 hover:decoration-almanac-sage-600 dark:hover:decoration-almanac-sage-500 hover:text-almanac-sage-800 dark:hover:text-almanac-sage-300 transition-colors"
                         {...props}
                       >
                         {children}
@@ -256,7 +256,7 @@ export function WikiPageStreaming({ slug, initialContent }: WikiPageStreamingPro
                   return (
                     <a
                       href={href}
-                      className="text-almanac-sage-700 no-underline hover:underline"
+                      className="text-almanac-sage-700 dark:text-almanac-sage-400 hover:text-almanac-sage-800 dark:hover:text-almanac-sage-300 no-underline hover:underline"
                       target="_blank"
                       rel="noopener noreferrer"
                       {...props}

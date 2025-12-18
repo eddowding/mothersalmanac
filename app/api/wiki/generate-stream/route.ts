@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { vectorSearch } from '@/lib/rag/search'
+import { vectorSearch, type SearchResult } from '@/lib/rag/search'
 import { assembleContext } from '@/lib/rag/context'
 import { buildWikiPrompt } from '@/lib/wiki/prompts'
 import { validateQuery, queryToSlug } from '@/lib/wiki/utils'
@@ -54,10 +54,20 @@ export async function POST(request: NextRequest) {
         send({ type: 'status', message: 'Searching the almanac...' })
 
         // Step 1: Vector search
-        const searchResults = await vectorSearch(normalizedQuery, {
-          threshold: 0.75,
-          limit: 15,
-        })
+        const thresholdsToTry = [0.7, 0.6, 0.5]
+        let searchResults: SearchResult[] = []
+
+        for (const threshold of thresholdsToTry) {
+          searchResults = await vectorSearch(normalizedQuery, {
+            threshold,
+            limit: 15,
+          })
+          if (searchResults.length > 0) break
+          // If we're going to retry, let the client know we're widening the net
+          if (threshold !== thresholdsToTry[thresholdsToTry.length - 1]) {
+            send({ type: 'status', message: 'No strong matches yet — broadening search...' })
+          }
+        }
 
         let systemPrompt = ''
         let usedAIFallback = false

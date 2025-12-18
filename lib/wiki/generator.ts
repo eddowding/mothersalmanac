@@ -67,7 +67,7 @@ export interface GeneratedPage {
  */
 export interface GeneratePageOptions {
   maxContextTokens?: number      // Max tokens for RAG context (default: 8000)
-  similarityThreshold?: number    // Min similarity for search (default: 0.75)
+  similarityThreshold?: number    // Min similarity for search (default: 0.7)
   maxResults?: number             // Max search results (default: 15)
   temperature?: number            // Claude temperature (default: 0.7)
   extractEntities?: boolean       // Extract linkable entities (default: true)
@@ -78,7 +78,7 @@ export interface GeneratePageOptions {
  */
 const DEFAULT_OPTIONS: Required<GeneratePageOptions> = {
   maxContextTokens: 8000,
-  similarityThreshold: 0.75,
+  similarityThreshold: 0.7,
   maxResults: 15,
   temperature: 0.7,
   extractEntities: true,
@@ -162,10 +162,28 @@ export async function generateWikiPage(
   try {
     // Step 1: Vector search for relevant content
     console.log('[Wiki Generator] Step 1: Vector search...')
-    const searchResults = await vectorSearch(normalizedQuery, {
-      threshold: opts.similarityThreshold,
-      limit: opts.maxResults,
-    })
+    const thresholdsToTry = Array.from(new Set([
+      opts.similarityThreshold,
+      // Broad topics often need a wider net; we only fall back if the strict search returns nothing.
+      Math.min(opts.similarityThreshold, 0.6),
+      Math.min(opts.similarityThreshold, 0.5),
+    ])).sort((a, b) => b - a)
+
+    let searchResults: SearchResult[] = []
+    let thresholdUsed = opts.similarityThreshold
+
+    for (const threshold of thresholdsToTry) {
+      thresholdUsed = threshold
+      searchResults = await vectorSearch(normalizedQuery, {
+        threshold,
+        limit: opts.maxResults,
+      })
+      if (searchResults.length > 0) break
+    }
+
+    if (thresholdUsed !== opts.similarityThreshold) {
+      console.log(`[Wiki Generator] No results at threshold ${opts.similarityThreshold}, retried with ${thresholdUsed}`)
+    }
 
     let context = ''
     let sources: any[] = []

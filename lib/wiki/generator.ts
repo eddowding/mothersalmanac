@@ -12,10 +12,149 @@
 import { generate as routerGenerate, estimateCost as routerEstimateCost, type RoutingContext } from '@/lib/ai/router'
 import { vectorSearch, type SearchResult } from '@/lib/rag/search'
 import { assembleContext } from '@/lib/rag/context'
-import { buildWikiPrompt } from './prompts'
+import { buildWikiPrompt, buildHybridWikiPrompt } from './prompts'
 import { extractEntities, type EntityLink } from './entities'
 import { extractTitle, validateQuery, queryToSlug } from './utils'
 import { injectLinks } from './link-injection'
+
+/**
+ * RAG quality assessment result
+ */
+export interface RAGQualityAssessment {
+  mode: 'pure_rag' | 'hybrid' | 'pure_ai'
+  avgSimilarity: number
+  uniqueSources: number
+  highQualityChunks: number  // Chunks with similarity > 0.5
+  qualityScore: number
+  reason: string
+}
+
+/**
+ * Assess the quality of RAG search results and determine generation mode
+ *
+ * Three modes:
+ * - pure_rag: High quality results, use RAG exclusively
+ * - hybrid: Mediocre results, use RAG + AI knowledge
+ * - pure_ai: Poor results, use AI knowledge only
+ *
+ * @param results - Search results to assess
+ * @returns Quality assessment with mode recommendation
+ */
+function assessRAGQuality(results: SearchResult[]): RAGQualityAssessment {
+  if (results.length === 0) {
+    return {
+      mode: 'pure_ai',
+      avgSimilarity: 0,
+      uniqueSources: 0,
+      highQualityChunks: 0,
+      qualityScore: 0,
+      reason: 'No search results found',
+    }
+  }
+
+  // Calculate metrics
+  const avgSimilarity = results.reduce((sum, r) => sum + r.similarity, 0) / results.length
+  const uniqueSources = new Set(results.map(r => r.document_id)).size
+  const highQualityChunks = results.filter(r => r.similarity > 0.5).length
+
+  // Quality score: weighted combination
+  // - 50% from average similarity
+  // - 30% from unique sources (normalized to 0-1, ideal is 3+ sources)
+  // - 20% from high quality chunk ratio
+  const sourceScore = Math.min(uniqueSources / 3, 1)
+  const hqRatio = highQualityChunks / results.length
+  const qualityScore = avgSimilarity * 0.5 + sourceScore * 0.3 + hqRatio * 0.2
+
+  // Determine mode based on quality thresholds
+  let mode: 'pure_rag' | 'hybrid' | 'pure_ai'
+  let reason: string
+
+  if (avgSimilarity >= 0.6 && highQualityChunks >= 5 && uniqueSources >= 2) {
+    mode = 'pure_rag'
+    reason = `High confidence: ${highQualityChunks} quality chunks from ${uniqueSources} sources (avg: ${(avgSimilarity * 100).toFixed(0)}%)`
+  } else if (avgSimilarity >= 0.45 && highQualityChunks >= 3 && uniqueSources >= 1) {
+    mode = 'hybrid'
+    reason = `Medium confidence: ${highQualityChunks} quality chunks from ${uniqueSources} sources (avg: ${(avgSimilarity * 100).toFixed(0)}%), supplementing with AI knowledge`
+  } else if (results.length >= 3 && avgSimilarity >= 0.35) {
+    mode = 'hybrid'
+    reason = `Low quality matches: avg ${(avgSimilarity * 100).toFixed(0)}% similarity, heavily supplementing with AI knowledge`
+  } else {
+    mode = 'pure_ai'
+    reason = `Insufficient quality: ${results.length} chunks with avg ${(avgSimilarity * 100).toFixed(0)}% similarity`
+  }
+
+  return {
+    mode,
+    avgSimilarity,
+    uniqueSources,
+    highQualityChunks,
+    qualityScore,
+    reason,
+  }
+}
+
+/**
+ * Select diverse chunks from search results
+ *
+ * Ensures representation from multiple source documents rather than
+ * all chunks coming from a single book.
+ *
+ * Strategy:
+ * 1. Group by source document
+ * 2. Select top 2-3 chunks from EACH source
+ * 3. Sort by similarity within groups
+ * 4. Cap at maxChunks total
+ *
+ * @param results - Search results to diversify
+ * @param maxChunksPerSource - Max chunks from each source (default: 3)
+ * @param maxTotalChunks - Total max chunks (default: 15)
+ * @returns Diverse selection of chunks
+ */
+function selectDiverseSources(
+  results: SearchResult[],
+  maxChunksPerSource: number = 3,
+  maxTotalChunks: number = 15
+): SearchResult[] {
+  if (results.length === 0) return []
+
+  // Group by source document
+  const bySource = new Map<string, SearchResult[]>()
+  for (const result of results) {
+    const sourceId = result.document_id
+    const existing = bySource.get(sourceId) || []
+    existing.push(result)
+    bySource.set(sourceId, existing)
+  }
+
+  // Sort sources by their best chunk's similarity
+  const sortedSources = Array.from(bySource.entries())
+    .map(([sourceId, chunks]) => ({
+      sourceId,
+      chunks: chunks.sort((a, b) => b.similarity - a.similarity),
+      bestSimilarity: Math.max(...chunks.map(c => c.similarity)),
+    }))
+    .sort((a, b) => b.bestSimilarity - a.bestSimilarity)
+
+  // Select top chunks from each source
+  const selected: SearchResult[] = []
+  let sourcesUsed = 0
+
+  // First pass: get best chunks from each source
+  for (const { chunks } of sortedSources) {
+    if (selected.length >= maxTotalChunks) break
+
+    const toAdd = chunks.slice(0, maxChunksPerSource)
+    selected.push(...toAdd)
+    sourcesUsed++
+  }
+
+  // Sort final selection by similarity
+  selected.sort((a, b) => b.similarity - a.similarity)
+
+  console.log(`[Wiki Generator] Diversified: ${selected.length} chunks from ${sourcesUsed} sources`)
+
+  return selected.slice(0, maxTotalChunks)
+}
 
 // Re-export utilities for convenience
 export { validateQuery, queryToSlug } from './utils'
@@ -58,7 +197,7 @@ export interface GeneratedPage {
       max_similarity: number
     }
     ai_fallback?: boolean
-    generation_source?: 'ai_knowledge' | 'rag_documents'
+    generation_source?: 'ai_knowledge' | 'rag_documents' | 'hybrid'
   }
 }
 
@@ -160,41 +299,45 @@ export async function generateWikiPage(
   console.log(`[Wiki Generator] Starting generation for: "${normalizedQuery}"`)
 
   try {
-    // Step 1: Vector search for relevant content
-    console.log('[Wiki Generator] Step 1: Vector search...')
-    const thresholdsToTry = Array.from(new Set([
-      opts.similarityThreshold,
-      // Broad topics often need a wider net; we only fall back if the strict search returns nothing.
-      Math.min(opts.similarityThreshold, 0.6),
-      Math.min(opts.similarityThreshold, 0.5),
-    ])).sort((a, b) => b - a)
+    // Step 1: Vector search for relevant content with broad retrieval
+    console.log('[Wiki Generator] Step 1: Vector search (broad retrieval)...')
 
-    let searchResults: SearchResult[] = []
-    let thresholdUsed = opts.similarityThreshold
+    // First, get a broad set of results with lower threshold for diversification
+    let allResults = await vectorSearch(normalizedQuery, {
+      threshold: 0.35, // Low threshold to get diverse sources
+      limit: 30,       // More results to select from
+    })
 
-    for (const threshold of thresholdsToTry) {
-      thresholdUsed = threshold
-      searchResults = await vectorSearch(normalizedQuery, {
-        threshold,
-        limit: opts.maxResults,
+    console.log(`[Wiki Generator] Initial search: ${allResults.length} chunks at 0.35 threshold`)
+
+    // If no results at all, try even lower
+    if (allResults.length === 0) {
+      allResults = await vectorSearch(normalizedQuery, {
+        threshold: 0.25,
+        limit: 30,
       })
-      if (searchResults.length > 0) break
+      console.log(`[Wiki Generator] Retry search: ${allResults.length} chunks at 0.25 threshold`)
     }
 
-    if (thresholdUsed !== opts.similarityThreshold) {
-      console.log(`[Wiki Generator] No results at threshold ${opts.similarityThreshold}, retried with ${thresholdUsed}`)
-    }
+    // Step 2: Apply source diversification
+    console.log('[Wiki Generator] Step 2: Diversifying sources...')
+    const diversifiedResults = selectDiverseSources(allResults, 3, opts.maxResults)
+
+    // Step 3: Assess quality of diversified results
+    console.log('[Wiki Generator] Step 3: Assessing RAG quality...')
+    const quality = assessRAGQuality(diversifiedResults)
+    console.log(`[Wiki Generator] Quality assessment: ${quality.mode} - ${quality.reason}`)
 
     let context = ''
     let sources: any[] = []
     let searchStats: any = null
     let systemPrompt = ''
-    let usedAIFallback = false
+    let usedAIFallback = quality.mode === 'pure_ai'
+    let generationMode = quality.mode
 
-    if (searchResults.length === 0) {
+    if (quality.mode === 'pure_ai') {
       // Fallback: Use Claude's general knowledge when no sources found
-      console.log(`[Wiki Generator] No sources found, using AI general knowledge fallback`)
-      usedAIFallback = true
+      console.log(`[Wiki Generator] Using AI general knowledge fallback`)
 
       systemPrompt = `You are writing for Mother's Almanac, a quick-reference guide for parents.
 
@@ -220,47 +363,53 @@ Write an almanac entry about: "${normalizedQuery}"
 
 Write the almanac entry now.`
 
-      searchStats = { avgSimilarity: 0, maxSimilarity: 0, minSimilarity: 0 }
+      searchStats = {
+        total_results: diversifiedResults.length,
+        avg_similarity: quality.avgSimilarity,
+        max_similarity: diversifiedResults.length > 0 ? Math.max(...diversifiedResults.map(r => r.similarity)) : 0,
+        min_similarity: diversifiedResults.length > 0 ? Math.min(...diversifiedResults.map(r => r.similarity)) : 0
+      }
     } else {
-      console.log(`[Wiki Generator] Found ${searchResults.length} relevant chunks`)
+      console.log(`[Wiki Generator] Using ${diversifiedResults.length} diversified chunks from ${quality.uniqueSources} sources`)
 
       // Calculate search statistics
-      searchStats = calculateSearchStats(searchResults)
+      searchStats = calculateSearchStats(diversifiedResults)
 
-      // Step 2: Assemble context from chunks
-      console.log('[Wiki Generator] Step 2: Assembling context...')
-      const assembled = assembleContext(searchResults, opts.maxContextTokens, normalizedQuery)
+      // Assemble context from diversified chunks
+      console.log('[Wiki Generator] Step 4: Assembling context...')
+      const assembled = assembleContext(diversifiedResults, opts.maxContextTokens, normalizedQuery)
       context = assembled.context
       sources = assembled.sources
 
       if (!context || context.length === 0) {
         console.log(`[Wiki Generator] Context assembly failed, using AI fallback`)
         usedAIFallback = true
+        generationMode = 'pure_ai'
         systemPrompt = `You are writing for Mother's Almanac, a quick-reference guide. Write a concise almanac entry about: "${normalizedQuery}"
 
 Use your general knowledge. Include: definition, quick facts table, key information (bullets), and "See also" links. Target 250-400 words. No emotional filler.`
       } else {
         console.log(`[Wiki Generator] Context assembled: ${context.length} chars, ${sources.length} sources`)
 
-        // Step 3: Build prompt
-        console.log('[Wiki Generator] Step 3: Building prompt...')
-        systemPrompt = buildWikiPrompt(normalizedQuery, context)
+        // Build prompt based on quality mode
+        console.log(`[Wiki Generator] Step 5: Building ${quality.mode} prompt...`)
+        if (quality.mode === 'pure_rag') {
+          systemPrompt = buildWikiPrompt(normalizedQuery, context)
+        } else {
+          // Hybrid mode: use context but allow AI supplementation
+          systemPrompt = buildHybridWikiPrompt(normalizedQuery, context)
+        }
       }
     }
 
-    // Step 4: Generate with AI (router selects optimal model)
-    // Calculate average similarity for routing decision
-    const avgSimilarity = searchResults.length > 0
-      ? searchResults.reduce((sum, r) => sum + r.similarity, 0) / searchResults.length
-      : 0
-
+    // Step 6: Generate with AI (router selects optimal model)
     const routingContext: RoutingContext = {
       taskType: 'wiki_generation',
-      hasRagContext: !usedAIFallback && searchResults.length > 0,
-      ragConfidence: avgSimilarity,
+      hasRagContext: generationMode !== 'pure_ai',
+      ragConfidence: quality.avgSimilarity,
     }
 
-    console.log(`[Wiki Generator] Step 4: Generating with AI (RAG: ${!usedAIFallback}, confidence: ${(avgSimilarity * 100).toFixed(0)}%)...`)
+    console.log(`[Wiki Generator] Step 6: Generating with AI (mode: ${generationMode}, confidence: ${(quality.avgSimilarity * 100).toFixed(0)}%)...`)
     const response = await routerGenerate(
       [
         {
@@ -287,20 +436,20 @@ Use your general knowledge. Include: definition, quick facts table, key informat
 
     console.log(`[Wiki Generator] Generated ${content.length} chars`)
 
-    // Step 5: Extract title from content
+    // Step 7: Extract title from content
     const title = extractTitle(content, normalizedQuery)
 
-    // Step 6: Extract entities for linking (optional)
+    // Step 8: Extract entities for linking (optional)
     let entityLinks: EntityLink[] = []
     if (opts.extractEntities) {
-      console.log('[Wiki Generator] Step 5: Extracting entities...')
+      console.log('[Wiki Generator] Step 8: Extracting entities...')
       try {
         entityLinks = await extractEntities(content)
         console.log(`[Wiki Generator] Found ${entityLinks.length} linkable entities`)
 
-        // Step 6b: Inject links into content
+        // Step 8b: Inject links into content
         if (entityLinks.length > 0) {
-          console.log('[Wiki Generator] Step 6: Injecting inline links...')
+          console.log('[Wiki Generator] Step 8b: Injecting inline links...')
           // Get list of existing pages for smart linking
           const existingPages = new Set(entityLinks.map(e => e.slug))
           content = await injectLinks(content, entityLinks, existingPages)
@@ -312,10 +461,18 @@ Use your general knowledge. Include: definition, quick facts table, key informat
       }
     }
 
-    // Step 7: Calculate confidence score
-    const confidence = usedAIFallback
-      ? 0.7  // AI-generated content gets 70% confidence (good enough to publish)
-      : calculateConfidence(searchResults, content, sources.length)
+    // Step 9: Calculate confidence score based on generation mode
+    let confidence: number
+    if (generationMode === 'pure_ai') {
+      confidence = 0.70  // AI-only gets 70% baseline
+    } else if (generationMode === 'hybrid') {
+      // Hybrid: blend of RAG quality and AI baseline
+      // Start at 65% and add bonus for RAG quality (up to 80%)
+      confidence = 0.65 + (quality.qualityScore * 0.15)
+    } else {
+      // Pure RAG: calculate from search results
+      confidence = calculateConfidence(diversifiedResults, content, sources.length)
+    }
     console.log(`[Wiki Generator] Confidence: ${(confidence * 100).toFixed(1)}%`)
 
     // Step 8: Get cost from router response
@@ -364,7 +521,7 @@ Use your general knowledge. Include: definition, quick facts table, key informat
         entity_links: dbEntityLinks,
         reading_mode: 'standard',
         query: normalizedQuery,
-        chunk_count: searchResults.length,
+        chunk_count: diversifiedResults.length,
         generation_time_ms: generationTime,
         token_usage: {
           input_tokens: response.usage.inputTokens,
@@ -374,9 +531,14 @@ Use your general knowledge. Include: definition, quick facts table, key informat
         model: response.model,
         provider: response.provider,
         routing_reason: response.routingReason,
-        search_stats: searchStats,
-        ai_fallback: usedAIFallback,
-        generation_source: usedAIFallback ? 'ai_knowledge' : 'rag_documents',
+        search_stats: {
+          ...searchStats,
+          unique_sources: quality.uniqueSources,
+          high_quality_chunks: quality.highQualityChunks,
+          generation_mode: generationMode,
+        },
+        ai_fallback: generationMode === 'pure_ai',
+        generation_source: generationMode === 'pure_ai' ? 'ai_knowledge' : (generationMode === 'hybrid' ? 'hybrid' : 'rag_documents'),
       },
     }
   } catch (error) {

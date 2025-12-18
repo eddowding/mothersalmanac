@@ -125,21 +125,23 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
         return
       }
 
-      // Get current user for file path
-      console.log('[Upload] Getting current user...')
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      console.log('[Upload] getUser completed:', { user: user?.id, error: authError })
-      if (authError) {
-        console.error('Auth error:', authError)
-        toast.error(`Authentication error: ${authError.message}`)
+      // Get current user for file path - use getSession() as getUser() can hang
+      console.log('[Upload] Getting session...')
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      console.log('[Upload] getSession completed:', { userId: session?.user?.id, error: sessionError })
+
+      if (sessionError) {
+        console.error('Session error:', sessionError)
+        toast.error(`Authentication error: ${sessionError.message}`)
         setIsUploading(false)
         return
       }
-      if (!user) {
+      if (!session?.user) {
         toast.error('You must be logged in to upload files')
         setIsUploading(false)
         return
       }
+      const user = session.user
 
       const totalFiles = files.length
       let successCount = 0

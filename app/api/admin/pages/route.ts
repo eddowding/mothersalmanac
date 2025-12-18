@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
         source_count: sourcesUsed.length,
         sources_used: sourcesUsed,
         generation_source: generationSource,
-        used_rag: generationSource === 'rag_documents' && sourcesUsed.length > 0,
+        used_rag: (generationSource === 'rag_documents' || generationSource === 'hybrid') && sourcesUsed.length > 0,
         model_used: modelUsed,
       }
     })

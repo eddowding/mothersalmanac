@@ -50,7 +50,7 @@ interface WikiPage {
   confidence_score: number | null
   source_count: number
   sources_used: string[]
-  generation_source: 'ai_knowledge' | 'rag_documents'
+  generation_source: 'ai_knowledge' | 'rag_documents' | 'hybrid'
   used_rag: boolean
   model_used: string | null
   created_at: string
@@ -139,7 +139,7 @@ export default function AdminPagesPage() {
       if (!response.ok) {
         throw new Error(data.error || 'Failed to regenerate')
       }
-      const source = data.page?.generation_source === 'rag_documents' ? 'RAG' : 'AI'
+      const source = data.page?.generation_source === 'rag_documents' ? 'RAG' : (data.page?.generation_source === 'hybrid' ? 'Hybrid' : 'AI')
       toast.success(`Page regenerated using ${source}`)
       fetchPages()
     } catch (err) {
@@ -340,10 +340,14 @@ export default function AdminPagesPage() {
                         {page.used_rag ? (
                           <button
                             onClick={() => setSourcesDialog({ open: true, page })}
-                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
+                            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer ${
+                              page.generation_source === 'hybrid'
+                                ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400 hover:bg-teal-200 dark:hover:bg-teal-900/50'
+                                : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50'
+                            }`}
                           >
                             <Database className="h-3 w-3" />
-                            RAG ({page.source_count})
+                            {page.generation_source === 'hybrid' ? 'Hybrid' : 'RAG'} ({page.source_count})
                           </button>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">

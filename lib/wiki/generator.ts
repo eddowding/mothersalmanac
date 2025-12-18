@@ -12,6 +12,12 @@
 import { generate as routerGenerate, estimateCost as routerEstimateCost, type RoutingContext } from '@/lib/ai/router'
 import { vectorSearch, type SearchResult } from '@/lib/rag/search'
 import { assembleContext } from '@/lib/rag/context'
+import {
+  boostOfficialSources,
+  analyzeOfficialStats,
+  enforceDiversity,
+  type BoostedSearchResult,
+} from '@/lib/rag/prioritization'
 import { buildWikiPrompt, buildHybridWikiPrompt } from './prompts'
 import { extractEntities, type EntityLink } from './entities'
 import { extractTitle, validateQuery, queryToSlug } from './utils'
@@ -319,12 +325,19 @@ export async function generateWikiPage(
       console.log(`[Wiki Generator] Retry search: ${allResults.length} chunks at 0.25 threshold`)
     }
 
-    // Step 2: Apply source diversification
-    console.log('[Wiki Generator] Step 2: Diversifying sources...')
-    const diversifiedResults = selectDiverseSources(allResults, 3, opts.maxResults)
+    // Step 2: Boost official sources (NHS, WHO, CDC, etc.)
+    console.log('[Wiki Generator] Step 2: Boosting official sources...')
+    const boostedResults = boostOfficialSources(allResults)
+    const officialStats = analyzeOfficialStats(boostedResults)
+    console.log(`[Wiki Generator] Official sources: ${officialStats.official_count}/${officialStats.total_count} (${officialStats.boosted_count} boosted)`)
 
-    // Step 3: Assess quality of diversified results
-    console.log('[Wiki Generator] Step 3: Assessing RAG quality...')
+    // Step 3: Apply source diversification with diversity enforcement
+    console.log('[Wiki Generator] Step 3: Diversifying sources...')
+    const diversifiedBoosted = enforceDiversity(boostedResults, 0.7, 30) // Enforce max 70% official before final selection
+    const diversifiedResults = selectDiverseSources(diversifiedBoosted as SearchResult[], 3, opts.maxResults)
+
+    // Step 4: Assess quality of diversified results
+    console.log('[Wiki Generator] Step 4: Assessing RAG quality...')
     const quality = assessRAGQuality(diversifiedResults)
     console.log(`[Wiki Generator] Quality assessment: ${quality.mode} - ${quality.reason}`)
 
@@ -473,7 +486,12 @@ Use your general knowledge. Include: definition, quick facts table, key informat
       // Pure RAG: calculate from search results
       confidence = calculateConfidence(diversifiedResults, content, sources.length)
     }
-    console.log(`[Wiki Generator] Confidence: ${(confidence * 100).toFixed(1)}%`)
+
+    // Add official source bonus (up to 5% boost for using NHS/WHO/CDC sources)
+    const officialBonus = Math.min(officialStats.official_ratio * 0.07, 0.05)
+    confidence = Math.min(confidence + officialBonus, 1.0)
+
+    console.log(`[Wiki Generator] Confidence: ${(confidence * 100).toFixed(1)}% (official bonus: +${(officialBonus * 100).toFixed(1)}%)`)
 
     // Step 8: Get cost from router response
     const totalCost = response.estimatedCost
@@ -536,6 +554,10 @@ Use your general knowledge. Include: definition, quick facts table, key informat
           unique_sources: quality.uniqueSources,
           high_quality_chunks: quality.highQualityChunks,
           generation_mode: generationMode,
+          // Official source tracking
+          official_source_count: officialStats.official_count,
+          official_source_ratio: officialStats.official_ratio,
+          boosted_count: officialStats.boosted_count,
         },
         ai_fallback: generationMode === 'pure_ai',
         generation_source: generationMode === 'pure_ai' ? 'ai_knowledge' : (generationMode === 'hybrid' ? 'hybrid' : 'rag_documents'),

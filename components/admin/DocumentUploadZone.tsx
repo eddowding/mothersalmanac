@@ -276,13 +276,21 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
       if (cookieSession) {
         console.log('[Upload] Using cookie session without getSession', { userId: cookieSession.user.id })
         const { supabaseUrl, supabaseAnonKey } = getSupabaseEnv()
-        supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
-          global: {
-            headers: {
-              Authorization: `Bearer ${cookieSession.access_token}`,
-            },
-          },
-        }) as SupabaseClient
+        supabase = createBrowserClient(supabaseUrl, supabaseAnonKey) as SupabaseClient
+
+        // Set the session properly so storage operations are authenticated
+        console.log('[Upload] Setting session from cookie...')
+        const { error: setSessionError } = await supabase.auth.setSession({
+          access_token: cookieSession.access_token,
+          refresh_token: cookieSession.refresh_token,
+        })
+        if (setSessionError) {
+          console.error('[Upload] Failed to set session:', setSessionError)
+          toast.error(`Authentication error: ${setSessionError.message}`)
+          setIsUploading(false)
+          return
+        }
+        console.log('[Upload] Session set successfully')
         user = cookieSession.user
       } else {
         // Create Supabase client with validation

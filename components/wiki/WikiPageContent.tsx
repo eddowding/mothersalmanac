@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { formatDistanceToNow } from 'date-fns'
-import { Eye, Clock, Calendar, Award } from 'lucide-react'
+import { Eye, Clock, Calendar, Award, AlertCircle, BookOpen, Shield } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -247,24 +247,73 @@ export function WikiPageContent({ page }: WikiPageContentProps) {
           {page.metadata.sources_used && page.metadata.sources_used.length > 0 && (
             <Card className="mt-12 border-almanac-sage-200 bg-almanac-cream-50 dark:bg-card dark:border-border">
               <CardContent className="pt-6">
-                <h2 className="font-serif text-xl font-semibold text-almanac-earth-700 dark:text-foreground mb-4">
-                  Sources
-                </h2>
+                <div className="flex items-center gap-2 mb-4">
+                  <BookOpen className="h-5 w-5 text-almanac-sage-600 dark:text-almanac-sage-400" />
+                  <h2 className="font-serif text-xl font-semibold text-almanac-earth-700 dark:text-foreground">
+                    Sources
+                  </h2>
+                </div>
                 <p className="text-sm text-muted-foreground mb-4">
-                  This page was generated from {page.metadata.sources_used.length} trusted
+                  This page was synthesised from {page.metadata.sources_used.length} trusted
                   {' '}
                   {page.metadata.sources_used.length === 1 ? 'source' : 'sources'}:
                 </p>
-                <ul className="space-y-2">
+                <ol className="space-y-2 list-decimal list-inside">
                   {page.metadata.sources_used.map((source, index) => (
                     <li key={index} className="text-sm text-foreground">
-                      {index + 1}. {source}
+                      {source}
                     </li>
                   ))}
-                </ul>
+                </ol>
+                <p className="text-xs text-muted-foreground mt-4 italic">
+                  Sources are cited for attribution. We do not reproduce copyrighted content.
+                </p>
               </CardContent>
             </Card>
           )}
+
+          {/* Disclaimers */}
+          <div className="mt-8 space-y-4">
+            {/* Medical Disclaimer */}
+            <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800/50">
+              <CardContent className="pt-5 pb-5">
+                <div className="flex gap-3">
+                  <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-amber-800 dark:text-amber-200 text-sm">
+                      Medical Disclaimer
+                    </h3>
+                    <p className="text-sm text-amber-700 dark:text-amber-300/90">
+                      This information is for general educational purposes only and is not a substitute
+                      for professional medical advice, diagnosis, or treatment. Always consult your GP,
+                      midwife, health visitor, or other qualified healthcare provider with any questions
+                      about your child's health or medical condition.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* AI Generation Notice */}
+            <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800/50">
+              <CardContent className="pt-5 pb-5">
+                <div className="flex gap-3">
+                  <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-blue-800 dark:text-blue-200 text-sm">
+                      About This Page
+                    </h3>
+                    <p className="text-sm text-blue-700 dark:text-blue-300/90">
+                      This page was generated using AI from the sources listed above. While we strive
+                      for accuracy, AI-generated content may contain errors or omissions. Information
+                      is current as of the generation date and may not reflect the latest research or
+                      guidelines. We recommend verifying important information from primary sources.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
           </div>
 
           {/* Sidebar - Table of contents (desktop only) */}

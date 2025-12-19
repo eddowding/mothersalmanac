@@ -76,10 +76,8 @@ export function WikiPage({ page }: Props) {
           </article>
 
           {/* Sidebar - Table of contents (desktop only) */}
-          <aside className="hidden lg:block">
-            <div className="sticky top-24">
-              <TableOfContents sections={sections} />
-            </div>
+          <aside className="hidden lg:block self-start sticky top-20">
+            <TableOfContents sections={sections} />
           </aside>
         </div>
       </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Section {
@@ -15,6 +16,7 @@ interface TableOfContentsProps {
 
 export function TableOfContents({ sections }: TableOfContentsProps) {
   const [activeSection, setActiveSection] = useState<string>('')
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   useEffect(() => {
     // Intersection Observer to track active section
@@ -40,30 +42,57 @@ export function TableOfContents({ sections }: TableOfContentsProps) {
   if (sections.length === 0) return null
 
   return (
-    <nav className="space-y-2" aria-label="Table of contents">
-      <h3 className="font-semibold text-sm text-muted-foreground mb-4">
-        On This Page
-      </h3>
-      <ul className="space-y-1 text-sm">
-        {sections.map(section => (
-          <li
-            key={section.id}
-            style={{ paddingLeft: `${(section.level - 2) * 12}px` }}
-          >
-            <a
-              href={`#${section.id}`}
-              className={cn(
-                'block py-1 hover:text-[hsl(var(--color-almanac-sage-600))] transition-colors',
-                activeSection === section.id
-                  ? 'text-[hsl(var(--color-almanac-sage-600))] font-medium border-l-2 border-[hsl(var(--color-almanac-sage-600))] pl-2 -ml-2'
-                  : 'text-muted-foreground'
-              )}
+    <nav
+      className="rounded-lg border border-border bg-card shadow-sm"
+      aria-label="Table of contents"
+    >
+      {/* Header */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors rounded-t-lg"
+        aria-expanded={!isCollapsed}
+      >
+        <span className="font-semibold text-sm text-foreground">Contents</span>
+        <ChevronUp
+          className={cn(
+            'h-4 w-4 text-muted-foreground transition-transform',
+            isCollapsed && 'rotate-180'
+          )}
+        />
+      </button>
+
+      {/* TOC List */}
+      {!isCollapsed && (
+        <ul className="px-4 pb-4 space-y-1 text-sm max-h-[60vh] overflow-y-auto">
+          {sections.map(section => (
+            <li
+              key={section.id}
+              style={{ paddingLeft: `${(section.level - 2) * 12}px` }}
             >
-              {section.title}
-            </a>
-          </li>
-        ))}
-      </ul>
+              <a
+                href={`#${section.id}`}
+                onClick={(e) => {
+                  e.preventDefault()
+                  const element = document.getElementById(section.id)
+                  if (element) {
+                    const yOffset = -80
+                    const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset
+                    window.scrollTo({ top: y, behavior: 'smooth' })
+                  }
+                }}
+                className={cn(
+                  'block py-1.5 hover:text-primary transition-colors',
+                  activeSection === section.id
+                    ? 'text-primary font-medium'
+                    : 'text-muted-foreground'
+                )}
+              >
+                {section.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
     </nav>
   )
 }

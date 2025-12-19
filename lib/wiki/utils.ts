@@ -93,6 +93,96 @@ export function extractDescription(
 }
 
 /**
+ * Blocked topic categories - clearly off-topic for a parenting almanac
+ */
+const BLOCKED_TOPICS = [
+  // Adult content
+  'porn', 'xxx', 'nsfw', 'nude', 'naked', 'erotic', 'fetish', 'onlyfans',
+  // Violence/weapons
+  'gun', 'rifle', 'pistol', 'firearm', 'ammo', 'ammunition', 'weapon', 'bomb', 'explosive',
+  'murder', 'kill', 'torture', 'gore',
+  // Drugs (recreational)
+  'cocaine', 'heroin', 'meth', 'mdma', 'lsd', 'ecstasy', 'weed', 'marijuana', 'cannabis',
+  'crack', 'fentanyl', 'recreational drug',
+  // Political/controversial
+  'trump', 'biden', 'brexit', 'election', 'democrat', 'republican', 'liberal', 'conservative',
+  'abortion debate', 'gun control', 'immigration policy',
+  // Gambling
+  'casino', 'gambling', 'betting', 'poker', 'slot machine', 'lottery',
+  // Crypto/finance spam
+  'bitcoin', 'crypto', 'nft', 'forex', 'day trading', 'get rich',
+  // Spam/SEO
+  'buy now', 'click here', 'free money', 'make money', 'work from home scam',
+  // Hate speech markers
+  'racial slur', 'hate group', 'supremacy',
+  // Random off-topic
+  'car repair', 'stock market', 'real estate investing', 'dropshipping',
+]
+
+/**
+ * Parenting-related keywords that indicate a valid topic
+ */
+const PARENTING_KEYWORDS = [
+  // Life stages
+  'baby', 'infant', 'newborn', 'toddler', 'child', 'kid', 'teen', 'adolescent',
+  'preschool', 'school age', 'puberty', 'tween',
+  // Family roles
+  'parent', 'mother', 'father', 'mom', 'dad', 'mum', 'guardian', 'caregiver',
+  'sibling', 'brother', 'sister', 'grandparent', 'family',
+  // Development
+  'milestone', 'development', 'growth', 'learning', 'cognitive', 'motor skill',
+  'language development', 'social skill', 'emotional', 'behaviour', 'behavior',
+  // Health & body
+  'feeding', 'breastfeed', 'bottle', 'formula', 'weaning', 'solid food',
+  'sleep', 'nap', 'bedtime', 'night waking', 'sleep training', 'crib', 'cot',
+  'diaper', 'nappy', 'potty', 'toilet training',
+  'teething', 'teeth', 'dental', 'fever', 'cold', 'flu', 'cough', 'rash',
+  'allergy', 'eczema', 'vaccination', 'immunisation', 'immunization',
+  'growth chart', 'percentile', 'weight', 'height',
+  // Care activities
+  'bath', 'bathing', 'swaddle', 'burp', 'soothe', 'calm', 'cry', 'colic',
+  'routine', 'schedule', 'tummy time', 'play', 'stimulation',
+  // Safety
+  'childproof', 'baby proof', 'safe', 'safety', 'choking', 'hazard', 'car seat',
+  // Education & activities
+  'read', 'book', 'story', 'nursery', 'daycare', 'kindergarten', 'school',
+  'homework', 'education', 'toy', 'game', 'craft', 'activity',
+  // Emotional/behavioral
+  'tantrum', 'meltdown', 'discipline', 'boundary', 'limit', 'positive parenting',
+  'attachment', 'bonding', 'separation anxiety', 'stranger anxiety',
+  'sibling rivalry', 'sharing', 'cooperation',
+  // Medical/conditions
+  'pediatric', 'paediatric', 'doctor', 'checkup', 'well visit',
+  'reflux', 'constipation', 'diarrhea', 'ear infection', 'conjunctivitis',
+  'asthma', 'adhd', 'autism', 'special needs', 'sensory',
+  // Products/gear
+  'stroller', 'pram', 'carrier', 'sling', 'highchair', 'playpen', 'monitor',
+  'bottle', 'pacifier', 'dummy', 'blanket', 'swaddle',
+  // Pregnancy/birth (related)
+  'pregnancy', 'pregnant', 'birth', 'labour', 'labor', 'delivery', 'postpartum',
+  'newborn care', 'cord', 'umbilical',
+  // Nutrition
+  'nutrition', 'vitamin', 'iron', 'calcium', 'healthy eating', 'picky eater',
+  'food introduction', 'meal', 'snack', 'portion',
+]
+
+/**
+ * Check if query contains blocked content
+ */
+function containsBlockedContent(query: string): boolean {
+  const lower = query.toLowerCase()
+  return BLOCKED_TOPICS.some(blocked => lower.includes(blocked))
+}
+
+/**
+ * Check if query is related to parenting/children topics
+ */
+function isParentingRelated(query: string): boolean {
+  const lower = query.toLowerCase()
+  return PARENTING_KEYWORDS.some(keyword => lower.includes(keyword))
+}
+
+/**
  * Validate that query is suitable for wiki generation
  *
  * @param query - User query
@@ -126,6 +216,22 @@ export function validateQuery(query: string): {
     return {
       valid: false,
       error: 'Query contains invalid characters'
+    }
+  }
+
+  // Check for blocked/dubious content
+  if (containsBlockedContent(normalized)) {
+    return {
+      valid: false,
+      error: 'This topic is outside the scope of Mother\'s Almanac. We focus exclusively on parenting and child-related topics.'
+    }
+  }
+
+  // Check if topic is parenting-related
+  if (!isParentingRelated(normalized)) {
+    return {
+      valid: false,
+      error: 'Mother\'s Almanac covers parenting and child-related topics only. Please search for something related to babies, children, or parenting.'
     }
   }
 

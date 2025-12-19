@@ -99,8 +99,14 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
         return null
       }
 
-      const decoded = decodeURIComponent(rawValue)
+      let decoded = decodeURIComponent(rawValue)
       console.log('[Upload] Cookie value preview:', decoded.substring(0, 100) + '...')
+
+      // Strip base64- prefix if present (supabase/ssr encoding format)
+      if (decoded.startsWith('base64-')) {
+        decoded = decoded.slice(7) // Remove 'base64-' prefix
+        console.log('[Upload] Stripped base64- prefix')
+      }
 
       const tryParse = (value: string) => {
         // Try direct JSON parse

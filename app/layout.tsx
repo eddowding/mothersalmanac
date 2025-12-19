@@ -27,28 +27,72 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://mothersalmanac.com'
+
 export const metadata: Metadata = {
-  title: "Mother's Almanac - Your Dynamic Knowledge Repository",
-  description: "A living encyclopedia powered by AI that grows with your questions. Ask anything, and watch the almanac expand with interconnected knowledge.",
-  keywords: ["wiki", "knowledge base", "AI", "encyclopedia", "almanac", "learning"],
+  metadataBase: new URL(BASE_URL),
+  title: {
+    default: "Mother's Almanac — Evidence-Based Parenting Guide",
+    template: "%s | Mother's Almanac",
+  },
+  description: "Your trusted companion for evidence-based parenting guidance. Quick-reference articles on baby care, child development, sleep, feeding, and more — synthesised from books, medical sources, and expert advice.",
+  keywords: [
+    "parenting guide",
+    "baby care",
+    "child development",
+    "newborn",
+    "toddler",
+    "infant care",
+    "breastfeeding",
+    "sleep training",
+    "child health",
+    "parenting advice",
+    "mother",
+    "father",
+    "childcare",
+  ],
   authors: [{ name: "Mother's Almanac" }],
+  creator: "Mother's Almanac",
+  publisher: "Mother's Almanac",
   openGraph: {
     type: "website",
-    locale: "en_US",
-    url: "https://mothersalmanac.com",
-    title: "Mother's Almanac",
-    description: "Your Dynamic Knowledge Repository",
+    locale: "en_GB",
+    url: BASE_URL,
+    title: "Mother's Almanac — Evidence-Based Parenting Guide",
+    description: "Your trusted companion for evidence-based parenting guidance. Quick-reference articles synthesised from trusted books and medical sources.",
     siteName: "Mother's Almanac",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 634,
+        alt: "Mother's Almanac — Evidence-Based Parenting Guide",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Mother's Almanac",
-    description: "Your Dynamic Knowledge Repository",
+    title: "Mother's Almanac — Evidence-Based Parenting Guide",
+    description: "Your trusted companion for evidence-based parenting guidance.",
+    site: "@mothersalmanac",
+    images: ["/og-image.png"],
   },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
+  verification: {
+    // Add your verification codes here when ready
+    // google: 'your-google-verification-code',
+  },
+  category: 'Parenting',
 };
 
 export default function RootLayout({

@@ -55,14 +55,50 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
       if (!supabaseUrl) return null
 
       const projectRef = new URL(supabaseUrl).hostname.split('.')[0]
-      const cookieName = `sb-${projectRef}-auth-token`
-      const match = document.cookie
-        .split('; ')
-        .find((cookie) => cookie.startsWith(`${cookieName}=`))
+      const cookiePrefix = `sb-${projectRef}-auth-token`
+      const cookies = document.cookie.split('; ')
 
-      if (!match) return null
+      // Debug: log available cookies matching our prefix
+      const matchingCookies = cookies.filter(c => c.startsWith(cookiePrefix))
+      console.log('[Upload] Found auth cookies:', matchingCookies.map(c => c.split('=')[0]))
 
-      const rawValue = match.split('=')[1]
+      // @supabase/ssr stores session in chunked cookies: .0, .1, etc.
+      // Collect all chunks and reassemble
+      const chunks: { index: number; value: string }[] = []
+      let singleCookie: string | null = null
+
+      for (const cookie of cookies) {
+        if (cookie.startsWith(`${cookiePrefix}=`)) {
+          // Single non-chunked cookie
+          singleCookie = cookie.split('=').slice(1).join('=')
+        } else if (cookie.startsWith(`${cookiePrefix}.`)) {
+          // Chunked cookie like sb-xxx-auth-token.0=value
+          const parts = cookie.split('=')
+          const key = parts[0]
+          const value = parts.slice(1).join('=')
+          const indexMatch = key.match(/\.(\d+)$/)
+          if (indexMatch) {
+            chunks.push({ index: parseInt(indexMatch[1], 10), value })
+          }
+        }
+      }
+
+      let rawValue: string | null = null
+      if (chunks.length > 0) {
+        // Reassemble chunked cookies in order
+        chunks.sort((a, b) => a.index - b.index)
+        rawValue = chunks.map(c => c.value).join('')
+        console.log('[Upload] Reassembled', chunks.length, 'cookie chunks')
+      } else if (singleCookie) {
+        rawValue = singleCookie
+        console.log('[Upload] Using single auth cookie')
+      }
+
+      if (!rawValue) {
+        console.log('[Upload] No auth cookie found')
+        return null
+      }
+
       const decoded = decodeURIComponent(rawValue)
 
       const tryParse = (value: string) => {
@@ -70,6 +106,7 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
           return JSON.parse(value)
         } catch {
           try {
+            // Try base64 decode then parse
             return JSON.parse(atob(value))
           } catch {
             return null
@@ -78,11 +115,19 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
       }
 
       const parsed = tryParse(decoded)
+      if (!parsed) {
+        console.log('[Upload] Failed to parse cookie value')
+        return null
+      }
+
       const session = parsed?.currentSession || parsed?.session || parsed
 
       if (session?.access_token && session?.refresh_token && session?.user) {
+        console.log('[Upload] Successfully parsed session from cookie', { userId: session.user.id })
         return session as Session
       }
+
+      console.log('[Upload] Cookie parsed but missing required session fields', Object.keys(session || {}))
     } catch (error) {
       console.warn('[Upload] Failed to parse Supabase session cookie', error)
     }

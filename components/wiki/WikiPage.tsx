@@ -26,9 +26,13 @@ export function WikiPage({ page }: Props) {
     const headingRegex = /^(#{2,3})\s+(.+)$/gm
     const matches = Array.from(page.content.matchAll(headingRegex))
 
+    // Strip markdown links from heading text: [text](/url) -> text
+    const stripMarkdownLinks = (text: string): string =>
+      text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+
     return matches.map((match, i) => ({
       id: `heading-${i}`,
-      title: match[2],
+      title: stripMarkdownLinks(match[2]),
       level: match[1].length
     }))
   }, [page.content])

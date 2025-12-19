@@ -17,6 +17,13 @@ interface WikiTableOfContentsProps {
 }
 
 /**
+ * Strip markdown links from text: [text](/url) -> text
+ */
+function stripMarkdownLinks(text: string): string {
+  return text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+}
+
+/**
  * Parse markdown content to extract headings and build TOC structure
  */
 function parseHeadings(content: string): TocSection[] {
@@ -26,7 +33,7 @@ function parseHeadings(content: string): TocSection[] {
 
   while ((match = headingRegex.exec(content)) !== null) {
     const level = match[1].length // Count # symbols
-    const title = match[2].trim()
+    const title = stripMarkdownLinks(match[2].trim())
 
     // Generate slug-style ID from title
     const id = title

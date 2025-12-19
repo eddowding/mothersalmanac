@@ -213,15 +213,10 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
         console.log('[Upload] Using cookie session without getSession', { userId: cookieSession.user.id })
         const { supabaseUrl, supabaseAnonKey } = getSupabaseEnv()
         supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
-          accessToken: cookieSession.access_token,
           global: {
             headers: {
               Authorization: `Bearer ${cookieSession.access_token}`,
             },
-          },
-          auth: {
-            persistSession: false,
-            autoRefreshToken: false,
           },
         }) as SupabaseClient
         user = cookieSession.user

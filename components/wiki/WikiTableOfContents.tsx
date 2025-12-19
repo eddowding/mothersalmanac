@@ -116,6 +116,8 @@ export function WikiTableOfContents({ content, className }: WikiTableOfContentsP
                       e.preventDefault()
                       const element = document.getElementById(section.id)
                       if (element) {
+                        // Update URL with anchor
+                        window.history.pushState(null, '', `#${section.id}`)
                         // Smooth scroll with offset for fixed headers
                         const yOffset = -80
                         const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset

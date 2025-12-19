@@ -20,6 +20,12 @@ const MAX_CONTENT_LENGTH = 2000
 /** User agent for fetching */
 const USER_AGENT = 'MothersAlmanac/1.0 (Health Reference Bot)'
 
+/** Cache TTL in milliseconds (24 hours) */
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000
+
+/** In-memory cache for web results */
+const webCache = new Map<string, { result: WebAugmentationResult; fetchedAt: number }>()
+
 /** NHS search base URL */
 const NHS_SEARCH_URL = 'https://www.nhs.uk/search/results?q='
 
@@ -377,6 +383,41 @@ export async function fetchAuthoritativeContent(
   }
 }
 
+/** Extended result type with caching info */
+export interface CachedWebAugmentationResult extends WebAugmentationResult {
+  cached: boolean
+  fetchedAt: Date
+}
+
+/**
+ * Fetch authoritative content with 24h caching
+ *
+ * Caches results to avoid repeated fetches for the same query.
+ * Cache TTL is 24 hours.
+ *
+ * @param query - The topic to search for
+ * @param domains - Which domains to fetch from
+ * @returns Cached or fresh results with cache metadata
+ */
+export async function fetchAuthoritativeContentCached(
+  query: string,
+  domains: string[] = ['nhs.uk', 'cdc.gov', 'who.int']
+): Promise<CachedWebAugmentationResult> {
+  const cacheKey = `${query.toLowerCase().trim()}-${[...domains].sort().join(',')}`
+  const cached = webCache.get(cacheKey)
+
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+    console.log(`[Web Augmentation] Cache hit for: "${query}"`)
+    return { ...cached.result, cached: true, fetchedAt: new Date(cached.fetchedAt) }
+  }
+
+  const result = await fetchAuthoritativeContent(query, domains)
+  const fetchedAt = Date.now()
+  webCache.set(cacheKey, { result, fetchedAt })
+
+  return { ...result, cached: false, fetchedAt: new Date(fetchedAt) }
+}
+
 /**
  * Build enhanced hybrid prompt context with web augmentation
  *
@@ -384,20 +425,26 @@ export async function fetchAuthoritativeContent(
  *
  * @param ragContext - Context from RAG search
  * @param webContext - Context from web augmentation
+ * @param fetchedAt - When the web content was retrieved (for attribution)
  * @returns Combined context string
  */
 export function buildAugmentedContext(
   ragContext: string,
-  webContext: string
+  webContext: string,
+  fetchedAt?: Date
 ): string {
   if (!webContext || webContext.length === 0) {
     return ragContext
   }
 
+  const dateStr = fetchedAt
+    ? ` (Retrieved: ${fetchedAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })})`
+    : ''
+
   return `# Book Sources (From RAG)
 ${ragContext}
 
-# Official Health Organisation Sources (From Web)
+# Official Health Organisation Sources${dateStr}
 Note: The following is recent guidance from official health organisations. Prioritise this information for medical facts, ages, and safety recommendations.
 
 ${webContext}`

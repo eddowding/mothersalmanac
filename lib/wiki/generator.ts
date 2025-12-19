@@ -20,8 +20,9 @@ import {
   type BoostedSearchResult,
 } from '@/lib/rag/prioritization'
 import {
-  fetchAuthoritativeContent,
+  fetchAuthoritativeContentCached,
   buildAugmentedContext,
+  type CachedWebAugmentationResult,
 } from '@/lib/rag/web-augmentation'
 import { buildWikiPrompt, buildHybridWikiPrompt } from './prompts'
 import { extractEntities, type EntityLink } from './entities'
@@ -354,6 +355,8 @@ export async function generateWikiPage(
     let generationMode = quality.mode
     let webAugmentationUsed = false
     let webSourceCount = 0
+    let webFetchedAt: Date | undefined
+    let webCached = false
 
     if (quality.mode === 'pure_ai') {
       // Fallback: Use Claude's general knowledge when no sources found
@@ -411,50 +414,54 @@ Use your general knowledge. Include: definition, quick facts table, key informat
       } else {
         console.log(`[Wiki Generator] Context assembled: ${context.length} chars, ${sources.length} sources`)
 
-        // Build prompt based on quality mode
-        console.log(`[Wiki Generator] Step 5: Building ${quality.mode} prompt...`)
+        // Step 5: Check for web augmentation (for ALL modes, not just hybrid)
+        let finalContext = context
+        if (shouldUseWebAugmentation(diversifiedResults, normalizedQuery)) {
+          console.log('[Wiki Generator] Step 5: Fetching authoritative web sources (cached)...')
+          try {
+            const webResult = await fetchAuthoritativeContentCached(normalizedQuery, ['nhs.uk', 'cdc.gov', 'who.int'])
+            if (webResult.successCount > 0) {
+              const cacheStatus = webResult.cached ? 'cached' : 'fresh'
+              console.log(`[Wiki Generator] Web augmentation: ${webResult.successCount} sources (${cacheStatus}) in ${webResult.fetchTimeMs}ms`)
+              finalContext = buildAugmentedContext(context, webResult.context, webResult.fetchedAt)
+              webAugmentationUsed = true
+              webSourceCount = webResult.successCount
+              webFetchedAt = webResult.fetchedAt
+              webCached = webResult.cached
+              // Add web sources to sources list
+              for (const src of webResult.sources) {
+                if (src.success) {
+                  sources.push(`${src.domain}: ${src.title}`)
+                }
+              }
+            } else {
+              console.log('[Wiki Generator] Web augmentation: no sources retrieved')
+            }
+          } catch (webError) {
+            console.warn('[Wiki Generator] Web augmentation failed:', webError)
+            // Continue without web augmentation
+          }
+        }
+
+        // Step 6: Build prompt based on quality mode
+        console.log(`[Wiki Generator] Step 6: Building ${quality.mode} prompt...`)
         if (quality.mode === 'pure_rag') {
-          systemPrompt = buildWikiPrompt(normalizedQuery, context)
+          systemPrompt = buildWikiPrompt(normalizedQuery, finalContext)
         } else {
           // Hybrid mode: use context but allow AI supplementation
-          // Step 5a: Check if web augmentation should be used
-          let finalContext = context
-          if (shouldUseWebAugmentation(diversifiedResults, normalizedQuery)) {
-            console.log('[Wiki Generator] Step 5a: Fetching authoritative web sources...')
-            try {
-              const webResult = await fetchAuthoritativeContent(normalizedQuery, ['nhs.uk', 'cdc.gov', 'who.int'])
-              if (webResult.successCount > 0) {
-                console.log(`[Wiki Generator] Web augmentation: ${webResult.successCount} sources in ${webResult.fetchTimeMs}ms`)
-                finalContext = buildAugmentedContext(context, webResult.context)
-                webAugmentationUsed = true
-                webSourceCount = webResult.successCount
-                // Add web sources to sources list
-                for (const src of webResult.sources) {
-                  if (src.success) {
-                    sources.push(`${src.domain}: ${src.title}`)
-                  }
-                }
-              } else {
-                console.log('[Wiki Generator] Web augmentation: no sources retrieved')
-              }
-            } catch (webError) {
-              console.warn('[Wiki Generator] Web augmentation failed:', webError)
-              // Continue without web augmentation
-            }
-          }
           systemPrompt = buildHybridWikiPrompt(normalizedQuery, finalContext)
         }
       }
     }
 
-    // Step 6: Generate with AI (router selects optimal model)
+    // Step 7: Generate with AI (router selects optimal model)
     const routingContext: RoutingContext = {
       taskType: 'wiki_generation',
       hasRagContext: generationMode !== 'pure_ai',
       ragConfidence: quality.avgSimilarity,
     }
 
-    console.log(`[Wiki Generator] Step 6: Generating with AI (mode: ${generationMode}, confidence: ${(quality.avgSimilarity * 100).toFixed(0)}%)...`)
+    console.log(`[Wiki Generator] Step 7: Generating with AI (mode: ${generationMode}, confidence: ${(quality.avgSimilarity * 100).toFixed(0)}%)...`)
     const response = await routerGenerate(
       [
         {
@@ -593,6 +600,8 @@ Use your general knowledge. Include: definition, quick facts table, key informat
           // Web augmentation tracking
           web_augmentation_used: webAugmentationUsed,
           web_source_count: webSourceCount,
+          web_fetched_at: webFetchedAt?.toISOString(),
+          web_cached: webCached,
         },
         ai_fallback: generationMode === 'pure_ai',
         generation_source: generationMode === 'pure_ai' ? 'ai_knowledge' : (generationMode === 'hybrid' ? 'hybrid' : 'rag_documents'),

@@ -14,8 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { createBrowserClient } from '@supabase/ssr'
 import { validateFile } from '@/lib/supabase/storage-validation'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, type SupabaseClient } from '@/lib/supabase/client'
+import type { Session } from '@supabase/supabase-js'
 import type { SourceType } from '@/types/wiki'
 
 const DOCUMENTS_BUCKET = 'documents'
@@ -35,6 +37,97 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
   const [files, setFiles] = useState<FileWithMetadata[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+
+  const sessionTimeoutMs = 1500
+
+  const getSupabaseEnv = () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Supabase environment variables missing')
+    }
+    return { supabaseUrl, supabaseAnonKey }
+  }
+
+  const parseSessionFromCookie = useCallback((): Session | null => {
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      if (!supabaseUrl) return null
+
+      const projectRef = new URL(supabaseUrl).hostname.split('.')[0]
+      const cookieName = `sb-${projectRef}-auth-token`
+      const match = document.cookie
+        .split('; ')
+        .find((cookie) => cookie.startsWith(`${cookieName}=`))
+
+      if (!match) return null
+
+      const rawValue = match.split('=')[1]
+      const decoded = decodeURIComponent(rawValue)
+
+      const tryParse = (value: string) => {
+        try {
+          return JSON.parse(value)
+        } catch {
+          try {
+            return JSON.parse(atob(value))
+          } catch {
+            return null
+          }
+        }
+      }
+
+      const parsed = tryParse(decoded)
+      const session = parsed?.currentSession || parsed?.session || parsed
+
+      if (session?.access_token && session?.refresh_token && session?.user) {
+        return session as Session
+      }
+    } catch (error) {
+      console.warn('[Upload] Failed to parse Supabase session cookie', error)
+    }
+
+    return null
+  }, [])
+
+  const getSessionWithFallback = useCallback(
+    async (supabase: SupabaseClient): Promise<{ session: Session | null; error: Error | null }> => {
+      try {
+        const sessionResponse = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('getSession timed out')), sessionTimeoutMs)
+          ),
+        ])
+
+        const typedResponse = sessionResponse as Awaited<ReturnType<typeof supabase.auth.getSession>>
+        if (typedResponse?.data?.session || typedResponse?.error) {
+          return { session: typedResponse.data?.session || null, error: typedResponse.error }
+        }
+      } catch (error) {
+        console.warn('[Upload] getSession timed out, attempting cookie fallback', error)
+      }
+
+      const cookieSession = parseSessionFromCookie()
+      if (cookieSession) {
+        console.log('[Upload] Using cookie session fallback')
+        const { data, error } = await supabase.auth.setSession({
+          access_token: cookieSession.access_token,
+          refresh_token: cookieSession.refresh_token,
+        })
+
+        if (error) {
+          console.error('[Upload] Failed to set session from cookie', error)
+          return { session: cookieSession, error: error instanceof Error ? error : new Error('Failed to set session') }
+        }
+
+        return { session: data.session || cookieSession, error: null }
+      }
+
+      return { session: null, error: new Error('Unable to retrieve session') }
+    },
+    [parseSessionFromCookie, sessionTimeoutMs]
+  )
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const validFiles: FileWithMetadata[] = []
@@ -111,37 +204,59 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
     console.log('[Upload] Starting upload process...')
 
     try {
-      // Create Supabase client with validation
-      let supabase
-      try {
-        console.log('[Upload] Creating Supabase client...')
-        supabase = createClient()
-        console.log('[Upload] Supabase client created successfully')
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to initialize Supabase client'
-        console.error('[Upload] Supabase client creation failed:', error)
-        toast.error(`Configuration error: ${message}`)
-        setIsUploading(false)
-        return
-      }
+      let supabase: SupabaseClient
+      let user: Session['user'] | null = null
 
-      // Get current user for file path - use getSession() as getUser() can hang
-      console.log('[Upload] Getting session...')
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-      console.log('[Upload] getSession completed:', { userId: session?.user?.id, error: sessionError })
+      const cookieSession = parseSessionFromCookie()
 
-      if (sessionError) {
-        console.error('Session error:', sessionError)
-        toast.error(`Authentication error: ${sessionError.message}`)
-        setIsUploading(false)
-        return
+      if (cookieSession) {
+        console.log('[Upload] Using cookie session without getSession', { userId: cookieSession.user.id })
+        const { supabaseUrl, supabaseAnonKey } = getSupabaseEnv()
+        supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+          accessToken: cookieSession.access_token,
+          global: {
+            headers: {
+              Authorization: `Bearer ${cookieSession.access_token}`,
+            },
+          },
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+          },
+        }) as SupabaseClient
+        user = cookieSession.user
+      } else {
+        // Create Supabase client with validation
+        try {
+          console.log('[Upload] Creating Supabase client...')
+          supabase = createClient()
+          console.log('[Upload] Supabase client created successfully')
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to initialize Supabase client'
+          console.error('[Upload] Supabase client creation failed:', error)
+          toast.error(`Configuration error: ${message}`)
+          setIsUploading(false)
+          return
+        }
+
+        // Get current user for file path - handle getSession hang with timeout + cookie fallback
+        console.log('[Upload] Getting session...')
+        const { session, error: sessionError } = await getSessionWithFallback(supabase)
+        console.log('[Upload] getSession completed:', { userId: session?.user?.id, error: sessionError })
+
+        if (sessionError) {
+          console.error('Session error:', sessionError)
+          toast.error(`Authentication error: ${sessionError.message}`)
+          setIsUploading(false)
+          return
+        }
+        if (!session?.user) {
+          toast.error('You must be logged in to upload files')
+          setIsUploading(false)
+          return
+        }
+        user = session.user
       }
-      if (!session?.user) {
-        toast.error('You must be logged in to upload files')
-        setIsUploading(false)
-        return
-      }
-      const user = session.user
 
       const totalFiles = files.length
       let successCount = 0

@@ -28,6 +28,7 @@ import { buildWikiPrompt, buildHybridWikiPrompt } from './prompts'
 import { extractEntities, type EntityLink } from './entities'
 import { extractTitle, validateQuery, queryToSlug } from './utils'
 import { injectLinks } from './link-injection'
+import { evaluateWikiContent, type EvaluationResult } from './evaluator'
 
 /**
  * RAG quality assessment result
@@ -207,6 +208,18 @@ export interface GeneratedPage {
       avg_similarity: number
       min_similarity: number
       max_similarity: number
+    }
+    quality_evaluation?: {
+      score: number
+      criteria: {
+        completeness: number
+        accuracy: number
+        structure: number
+        actionable: number
+        conciseness: number
+      }
+      feedback: string
+      evaluation_time_ms: number
     }
     ai_fallback?: boolean
     generation_source?: 'ai_knowledge' | 'rag_documents' | 'hybrid'
@@ -513,24 +526,17 @@ Use your general knowledge. Include: definition, quick facts table, key informat
       }
     }
 
-    // Step 9: Calculate confidence score based on generation mode
-    let confidence: number
-    if (generationMode === 'pure_ai') {
-      confidence = 0.70  // AI-only gets 70% baseline
-    } else if (generationMode === 'hybrid') {
-      // Hybrid: blend of RAG quality and AI baseline
-      // Start at 65% and add bonus for RAG quality (up to 80%)
-      confidence = 0.65 + (quality.qualityScore * 0.15)
-    } else {
-      // Pure RAG: calculate from search results
-      confidence = calculateConfidence(diversifiedResults, content, sources.length)
-    }
+    // Step 9: Evaluate output quality with Haiku
+    console.log('[Wiki Generator] Step 9: Evaluating output quality...')
+    const evaluation = await evaluateWikiContent(normalizedQuery, content, sources)
+    const confidence = evaluation.score / 100  // Convert 0-100 to 0-1
 
-    // Add official source bonus (up to 5% boost for using NHS/WHO/CDC sources)
-    const officialBonus = Math.min(officialStats.official_ratio * 0.07, 0.05)
-    confidence = Math.min(confidence + officialBonus, 1.0)
-
-    console.log(`[Wiki Generator] Confidence: ${(confidence * 100).toFixed(1)}% (official bonus: +${(officialBonus * 100).toFixed(1)}%)`)
+    console.log(
+      `[Wiki Generator] Quality score: ${evaluation.score}/100 ` +
+      `(C:${evaluation.criteria.completeness} A:${evaluation.criteria.accuracy} ` +
+      `S:${evaluation.criteria.structure} P:${evaluation.criteria.actionable} ` +
+      `N:${evaluation.criteria.conciseness})`
+    )
 
     // Step 8: Get cost from router response
     const totalCost = response.estimatedCost
@@ -602,6 +608,13 @@ Use your general knowledge. Include: definition, quick facts table, key informat
           web_source_count: webSourceCount,
           web_fetched_at: webFetchedAt?.toISOString(),
           web_cached: webCached,
+        },
+        // Quality evaluation (LLM self-eval)
+        quality_evaluation: {
+          score: evaluation.score,
+          criteria: evaluation.criteria,
+          feedback: evaluation.feedback,
+          evaluation_time_ms: evaluation.evaluationTimeMs,
         },
         ai_fallback: generationMode === 'pure_ai',
         generation_source: generationMode === 'pure_ai' ? 'ai_knowledge' : (generationMode === 'hybrid' ? 'hybrid' : 'rag_documents'),

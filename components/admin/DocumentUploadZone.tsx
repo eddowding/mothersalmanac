@@ -100,16 +100,29 @@ export function DocumentUploadZone({ onUploadComplete }: DocumentUploadZoneProps
       }
 
       const decoded = decodeURIComponent(rawValue)
+      console.log('[Upload] Cookie value preview:', decoded.substring(0, 100) + '...')
 
       const tryParse = (value: string) => {
+        // Try direct JSON parse
         try {
           return JSON.parse(value)
-        } catch {
+        } catch (e1) {
+          // Try standard base64 decode
           try {
-            // Try base64 decode then parse
             return JSON.parse(atob(value))
-          } catch {
-            return null
+          } catch (e2) {
+            // Try base64url decode (replace - with + and _ with /)
+            try {
+              const base64 = value.replace(/-/g, '+').replace(/_/g, '/')
+              return JSON.parse(atob(base64))
+            } catch (e3) {
+              console.log('[Upload] Parse attempts failed:', {
+                json: (e1 as Error).message,
+                base64: (e2 as Error).message,
+                base64url: (e3 as Error).message,
+              })
+              return null
+            }
           }
         }
       }

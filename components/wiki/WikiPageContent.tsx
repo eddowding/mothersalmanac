@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { formatDistanceToNow } from 'date-fns'
@@ -11,7 +12,7 @@ import { WikiNav } from '@/components/WikiNav'
 import { generateBreadcrumbs, slugify } from '@/lib/wiki/slugs'
 import type { CachedPage } from '@/lib/wiki/cache'
 import Link from 'next/link'
-import { WikiTableOfContents } from '@/components/wiki/WikiTableOfContents'
+import { TableOfContents } from '@/components/wiki/TableOfContents'
 
 /**
  * Convert [[wiki links]] to standard markdown links
@@ -21,6 +22,35 @@ function preprocessWikiLinks(content: string): string {
   return content.replace(/\[\[([^\]]+)\]\]/g, (_, topic) => {
     const slug = slugify(topic)
     return `[${topic}](/wiki/${slug})`
+  })
+}
+
+/**
+ * Strip markdown links from text: [text](/url) -> text
+ */
+function stripMarkdownLinks(text: string): string {
+  return text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+}
+
+/**
+ * Extract sections from markdown content for TOC
+ */
+function extractSections(content: string): Array<{ id: string; title: string; level: number }> {
+  const headingRegex = /^(#{2,4})\s+(.+)$/gm
+  const matches = Array.from(content.matchAll(headingRegex))
+
+  return matches.map(match => {
+    const level = match[1].length
+    const rawTitle = match[2].trim()
+    const title = stripMarkdownLinks(rawTitle)
+    const id = title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim()
+
+    return { id, title, level }
   })
 }
 
@@ -78,78 +108,79 @@ export function WikiPageContent({ page }: WikiPageContentProps) {
   const breadcrumbs = generateBreadcrumbs(page.slug)
   const readingTime = estimateReadingTime(page.content)
   const confidenceBadge = getConfidenceBadge(page.confidence_score)
+  const sections = useMemo(() => extractSections(page.content), [page.content])
 
   return (
     <div className="min-h-screen flex flex-col">
       <WikiNav />
 
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Breadcrumbs */}
-          <nav className="mb-6" aria-label="Breadcrumb">
-            <ol className="flex items-center gap-2 text-sm text-muted-foreground">
-              {breadcrumbs.map((crumb, index) => (
-                <li key={crumb.href} className="flex items-center gap-2">
-                  {index > 0 && <span>/</span>}
-                  <Link
-                    href={crumb.href}
-                    className="hover:text-almanac-sage-700 dark:hover:text-almanac-sage-300 transition-colors"
-                  >
-                    {crumb.label}
-                  </Link>
-                </li>
-              ))}
-            </ol>
-          </nav>
+        {/* Breadcrumbs - full width */}
+        <nav className="mb-6 max-w-7xl mx-auto" aria-label="Breadcrumb">
+          <ol className="flex items-center gap-2 text-sm text-muted-foreground">
+            {breadcrumbs.map((crumb, index) => (
+              <li key={crumb.href} className="flex items-center gap-2">
+                {index > 0 && <span>/</span>}
+                <Link
+                  href={crumb.href}
+                  className="hover:text-almanac-sage-700 dark:hover:text-almanac-sage-300 transition-colors"
+                >
+                  {crumb.label}
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </nav>
 
-          {/* Page Header */}
-          <header className="mb-8 space-y-4">
-            <h1 className="font-serif text-4xl md:text-5xl font-bold text-almanac-earth-700 dark:text-foreground">
-              {page.title}
-            </h1>
+        {/* Two-column layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8 max-w-7xl mx-auto">
+          {/* Main content column */}
+          <div className="min-w-0">
+            {/* Page Header */}
+            <header className="mb-8 space-y-4">
+              <h1 className="font-serif text-4xl md:text-5xl font-bold text-almanac-earth-700 dark:text-foreground">
+                {page.title}
+              </h1>
 
-            {/* Metadata Bar */}
-            <div className="flex flex-wrap items-center gap-4 pb-4 border-b border-border">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Eye className="h-4 w-4" />
-                <span>{page.view_count} views</span>
+              {/* Metadata Bar */}
+              <div className="flex flex-wrap items-center gap-4 pb-4 border-b border-border">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Eye className="h-4 w-4" />
+                  <span>{page.view_count} views</span>
+                </div>
+
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span>{readingTime} min read</span>
+                </div>
+
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  <span>
+                    Updated {formatDistanceToNow(new Date(page.generated_at), { addSuffix: true })}
+                  </span>
+                </div>
+
+                <Badge
+                  variant={confidenceBadge.variant as any}
+                  className="flex items-center gap-1"
+                  title={confidenceBadge.description}
+                >
+                  <Award className="h-3 w-3" />
+                  {confidenceBadge.label}
+                </Badge>
               </div>
 
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                <span>{readingTime} min read</span>
-              </div>
+              {/* Excerpt */}
+              {page.excerpt && (
+                <p className="text-lg text-muted-foreground leading-relaxed">
+                  {page.excerpt}
+                </p>
+              )}
+            </header>
 
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                <span>
-                  Updated {formatDistanceToNow(new Date(page.generated_at), { addSuffix: true })}
-                </span>
-              </div>
-
-              <Badge
-                variant={confidenceBadge.variant as any}
-                className="flex items-center gap-1"
-                title={confidenceBadge.description}
-              >
-                <Award className="h-3 w-3" />
-                {confidenceBadge.label}
-              </Badge>
-            </div>
-
-            {/* Excerpt */}
-            {page.excerpt && (
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                {page.excerpt}
-              </p>
-            )}
-          </header>
-
-          {/* Table of Contents */}
-          <WikiTableOfContents content={page.content} />
-
-          {/* Main Content */}
-          <article className="prose prose-lg max-w-none dark:prose-invert prose-headings:font-serif prose-headings:text-almanac-earth-700 dark:prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground">
+            {/* Main Content */}
+            <article className="prose prose-lg max-w-none dark:prose-invert prose-headings:font-serif prose-headings:text-almanac-earth-700 dark:prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -234,34 +265,40 @@ export function WikiPageContent({ page }: WikiPageContentProps) {
               </CardContent>
             </Card>
           )}
+          </div>
 
-          {/* Related Pages / Entity Links */}
-          {page.metadata.entity_links && page.metadata.entity_links.length > 0 && (
-            <div className="mt-12 space-y-4">
-              <Separator />
-              <h2 className="font-serif text-2xl font-semibold text-almanac-earth-700 dark:text-foreground">
-                Related Topics
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {page.metadata.entity_links.map((link, index) => (
-                  <Link
-                    key={index}
-                    href={`/wiki/${link.slug}`}
-                    className="group"
-                  >
-                    <Card className="hover:border-almanac-sage-400 transition-colors">
-                      <CardContent className="p-4">
-                        <span className="text-sm font-medium group-hover:text-almanac-sage-700 dark:group-hover:text-almanac-sage-300 transition-colors">
-                          {link.entity}
-                        </span>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Sidebar - Table of contents (desktop only) */}
+          <aside className="hidden lg:block self-start sticky top-20">
+            <TableOfContents sections={sections} />
+          </aside>
         </div>
+
+        {/* Related Pages / Entity Links - full width below grid */}
+        {page.metadata.entity_links && page.metadata.entity_links.length > 0 && (
+          <div className="mt-12 space-y-4 max-w-7xl mx-auto">
+            <Separator />
+            <h2 className="font-serif text-2xl font-semibold text-almanac-earth-700 dark:text-foreground">
+              Related Topics
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {page.metadata.entity_links.map((link, index) => (
+                <Link
+                  key={index}
+                  href={`/wiki/${link.slug}`}
+                  className="group"
+                >
+                  <Card className="hover:border-almanac-sage-400 transition-colors">
+                    <CardContent className="p-4">
+                      <span className="text-sm font-medium group-hover:text-almanac-sage-700 dark:group-hover:text-almanac-sage-300 transition-colors">
+                        {link.entity}
+                      </span>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )
